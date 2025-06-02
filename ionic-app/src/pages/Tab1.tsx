@@ -5,7 +5,6 @@ import {
   IonTitle,
   IonToolbar,
 } from "@ionic/react";
-import ExploreContainer from "../components/ExploreContainer";
 import DynamicIframe from "../components/DynamicIframe";
 import "./Tab1.css";
 import { LocalNotifications } from "@capacitor/local-notifications";
