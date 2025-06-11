@@ -1,0 +1,14 @@
+{
+  "name": "test-iframe-app",
+  "version": "1.0.0",
+  "description": "Test application for DynamicIframe component",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "install-deps": "npm install express cors"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  }
+}

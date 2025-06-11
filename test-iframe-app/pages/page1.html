@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Iframe App - Page 1</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        nav {
+            background-color: #f0f0f0;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+        nav a {
+            margin-right: 15px;
+            text-decoration: none;
+            color: #333;
+        }
+        nav a:hover {
+            text-decoration: underline;
+        }
+        .content {
+            border: 1px solid #ddd;
+            padding: 20px;
+            min-height: 300px;
+            background-color: #f9f9f9;
+        }
+    </style>
+    <script>
+        // Function to handle messages from parent window
+        window.addEventListener('message', function(event) {
+            
+            // Check if we received a navigation request
+            if (event.data && event.data.goto) {
+                let targetUrl = event.data.goto;
+                
+                // Resolve the URL to ensure it's properly formatted
+                targetUrl = resolveUrl(targetUrl);              
+                // Extract the path portion of the URL (remove the origin)
+                const urlObj = new URL(targetUrl);
+                const pathUrl = urlObj.pathname + urlObj.search + urlObj.hash;
+                
+                // For relative URLs, use history API if possible to avoid page reload
+                try {
+                    // Just change the URL without reloading
+                    window.history.pushState({}, '', pathUrl);
+                    
+                    // Manually trigger a popstate event to notify the page of the URL change
+                    const popStateEvent = new PopStateEvent('popstate', { state: {} });
+                    window.dispatchEvent(popStateEvent);
+                    
+                    // Notify parent about the navigation
+                    window.parent.postMessage({ url: window.location.href }, '*');
+                    
+                    // Update the page content based on the new URL
+                    updatePageContent(pathUrl);
+                    
+                    return;
+                } catch (e) {
+                    console.log('Could not use history API, falling back to location.href', e);
+                }
+                
+                // Fallback to traditional navigation
+                window.location.href = targetUrl;
+            }
+        });
+        
+        // Function to update page content based on URL without reloading
+        function updatePageContent(url) {
+            // This is a simple implementation - in a real app, you would
+            // fetch the content for the new URL and update the DOM
+            
+            // Update the current URL display
+            updateCurrentUrlDisplay();
+        }
+
+        // Function to resolve relative URLs to absolute paths
+        function resolveUrl(url) {
+            // Create a temporary anchor element to resolve the URL
+            const a = document.createElement('a');
+            a.href = url;
+            return a.href;
+        }
+        
+        // Function to navigate and notify parent
+        function navigateTo(url) {
+            // Resolve the URL to an absolute path
+            const absoluteUrl = resolveUrl(url);
+            // Extract the path portion of the URL (remove the origin)
+            const urlObj = new URL(absoluteUrl);
+            const pathUrl = urlObj.pathname + urlObj.search + urlObj.hash;
+            
+            // Notify parent window about navigation
+            window.parent.postMessage({ url: absoluteUrl }, '*');
+            
+            // Try to use history API for smoother navigation
+            try {
+                window.history.pushState({}, '', pathUrl);
+                
+                // Manually trigger a popstate event
+                const popStateEvent = new PopStateEvent('popstate', { state: {} });
+                window.dispatchEvent(popStateEvent);
+                return false;
+            } catch (e) {
+                console.log('Could not use history API, falling back to default navigation', e);
+                // Let the default navigation happen
+                return true;
+            }
+        }
+        
+        // Listen for popstate events (browser back/forward buttons)
+        window.addEventListener('popstate', function(event) {
+            // Notify parent about the navigation
+            window.parent.postMessage({ url: window.location.href }, '*');
+        });
+    </script>
+</head>
+<body>
+    <h1>Test Iframe App</h1>
+    
+    <nav>
+        <a href="/index.html" onclick="return navigateTo('http://localhost:3001/index.html')">Home</a>
+        <a href="/pages/page1.html" onclick="return navigateTo('http://localhost:3001/pages/page1.html')">Page 1</a>
+        <a href="/pages/page2.html" onclick="return navigateTo('http://localhost:3001/pages/page2.html')">Page 2</a>
+        <a href="/pages/page3.html" onclick="return navigateTo('http://localhost:3001/pages/page3.html')">Page 3</a>
+    </nav>
+    
+    <div class="content">
+        <h2>Page 1</h2>
+        <p>This is Page 1 of the test iframe application.</p>
+        <p>Click on the navigation links above to test iframe navigation.</p>
+        <p>Current URL: <span id="currentUrl"></span></p>
+        <p>Navigation stack will be maintained by the parent DynamicIframe component.</p>
+        
+        <div style="margin-top: 20px; padding: 15px; background-color: #e0f7fa; border-radius: 5px;">
+            <h3>Page 1 Specific Content</h3>
+            <p>This content is specific to Page 1.</p>
+            <button onclick="navigateTo('http://localhost:3001/pages/page2.html')">Go to Page 2</button>
+        </div>
+    </div>
+
+    <script>
+        // Function to update the current URL display
+        function updateCurrentUrlDisplay() {
+            document.getElementById('currentUrl').textContent = window.location.href;
+        }
+        
+        // Display current URL
+        updateCurrentUrlDisplay();
+        
+        // Notify parent that page is loaded
+        window.parent.postMessage({ 
+            status: 'loaded',
+            url: window.location.href
+        }, '*');
+        
+        // Update URL display when popstate event occurs
+        window.addEventListener('popstate', updateCurrentUrlDisplay);
+    </script>
+</body>
+</html>

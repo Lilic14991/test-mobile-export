@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Iframe App - Page 3</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        nav {
+            background-color: #f0f0f0;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+        nav a {
+            margin-right: 15px;
+            text-decoration: none;
+            color: #333;
+        }
+        nav a:hover {
+            text-decoration: underline;
+        }
+        .content {
+            border: 1px solid #ddd;
+            padding: 20px;
+            min-height: 300px;
+            background-color: #fff8e1;
+        }
+        .form-container {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #fff3e0;
+            border-radius: 5px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+    <script>
+        // Function to handle messages from parent window
+        window.addEventListener('message', function(event) {
+            console.log('Message received in iframe:', event.data);
+            
+            // Check if we received a navigation request
+            if (event.data && event.data.goto) {
+                let targetUrl = event.data.goto;
+                console.log('Navigating to:', targetUrl);
+                
+                // Resolve the URL to ensure it's properly formatted
+                targetUrl = resolveUrl(targetUrl);
+                console.log('Resolved target URL:', targetUrl);
+                
+                // Extract the path portion of the URL (remove the origin)
+                const urlObj = new URL(targetUrl);
+                const pathUrl = urlObj.pathname + urlObj.search + urlObj.hash;
+                
+                // For relative URLs, use history API if possible to avoid page reload
+                try {
+                    // Just change the URL without reloading
+                    window.history.pushState({}, '', pathUrl);
+                    
+                    // Manually trigger a popstate event to notify the page of the URL change
+                    const popStateEvent = new PopStateEvent('popstate', { state: {} });
+                    window.dispatchEvent(popStateEvent);
+                    
+                    // Notify parent about the navigation
+                    window.parent.postMessage({ url: window.location.href }, '*');
+                    
+                    console.log('Used history API for navigation');
+                    
+                    // Update the page content based on the new URL
+                    updatePageContent(pathUrl);
+                    
+                    return;
+                } catch (e) {
+                    console.log('Could not use history API, falling back to location.href', e);
+                }
+                
+                // Fallback to traditional navigation
+                window.location.href = targetUrl;
+            }
+        });
+        
+        // Function to update page content based on URL without reloading
+        function updatePageContent(url) {
+            // This is a simple implementation - in a real app, you would
+            // fetch the content for the new URL and update the DOM
+            console.log('Updating page content for:', url);
+            
+            // Update the current URL display
+            updateCurrentUrlDisplay();
+        }
+
+        // Function to resolve relative URLs to absolute paths
+        function resolveUrl(url) {
+            // Create a temporary anchor element to resolve the URL
+            const a = document.createElement('a');
+            a.href = url;
+            return a.href;
+        }
+        
+        // Function to navigate and notify parent
+        function navigateTo(url) {
+            console.log('Navigating to:', url);
+            
+            // Resolve the URL to an absolute path
+            const absoluteUrl = resolveUrl(url);
+            console.log('Resolved absolute URL:', absoluteUrl);
+            
+            // Extract the path portion of the URL (remove the origin)
+            const urlObj = new URL(absoluteUrl);
+            const pathUrl = urlObj.pathname + urlObj.search + urlObj.hash;
+            
+            // Notify parent window about navigation
+            window.parent.postMessage({ url: absoluteUrl }, '*');
+            
+            // Try to use history API for smoother navigation
+            try {
+                window.history.pushState({}, '', pathUrl);
+                
+                // Manually trigger a popstate event
+                const popStateEvent = new PopStateEvent('popstate', { state: {} });
+                window.dispatchEvent(popStateEvent);
+                
+                console.log('Used history API for navigation');
+                return false;
+            } catch (e) {
+                console.log('Could not use history API, falling back to default navigation', e);
+                // Let the default navigation happen
+                return true;
+            }
+        }
+        
+        // Listen for popstate events (browser back/forward buttons)
+        window.addEventListener('popstate', function(event) {
+            console.log('Popstate event detected, current URL:', window.location.href);
+            
+            // Notify parent about the navigation
+            window.parent.postMessage({ url: window.location.href }, '*');
+        });
+        
+        // Function to handle form submission
+        function handleSubmit(event) {
+            event.preventDefault();
+            
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const message = document.getElementById('message').value;
+            
+            console.log('Form submitted:', { name, email, message });
+            
+            // Show success message
+            document.getElementById('form-container').innerHTML = `
+                <h3>Form Submitted Successfully!</h3>
+                <p>Thank you, ${name}, for your submission.</p>
+                <p>We've received your message and will get back to you at ${email} soon.</p>
+                <button onclick="navigateTo('http://localhost:3001/index.html')">Return to Home</button>
+            `;
+            
+            // Notify parent about the form submission
+            window.parent.postMessage({ 
+                type: 'form_submit',
+                data: { name, email, message }
+            }, '*');
+            
+            return false;
+        }
+    </script>
+</head>
+<body>
+    <h1>Test Iframe App</h1>
+    
+    <nav>
+        <a href="/index.html" onclick="return navigateTo('http://localhost:3001/index.html')">Home</a>
+        <a href="/pages/page1.html" onclick="return navigateTo('http://localhost:3001/pages/page1.html')">Page 1</a>
+        <a href="/pages/page2.html" onclick="return navigateTo('http://localhost:3001/pages/page2.html')">Page 2</a>
+        <a href="/pages/page3.html" onclick="return navigateTo('http://localhost:3001/pages/page3.html')">Page 3</a>
+    </nav>
+    
+    <div class="content">
+        <h2>Page 3 - Contact Form</h2>
+        <p>This is Page 3 of the test iframe application.</p>
+        <p>Current URL: <span id="currentUrl"></span></p>
+        
+        <div id="form-container" class="form-container">
+            <h3>Contact Form</h3>
+            <p>Fill out this form to test form submission within the iframe.</p>
+            
+            <form id="contact-form" onsubmit="return handleSubmit(event)">
+                <div class="form-group">
+                    <label for="name">Name:</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="message">Message:</label>
+                    <textarea id="message" name="message" rows="4" required></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <button type="submit">Submit</button>
+                    <button type="button" onclick="navigateTo('http://localhost:3001/pages/page2.html')" style="background-color: #607d8b; margin-left: 10px;">Back to Page 2</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Function to update the current URL display
+        function updateCurrentUrlDisplay() {
+            document.getElementById('currentUrl').textContent = window.location.href;
+        }
+        
+        // Display current URL
+        updateCurrentUrlDisplay();
+        
+        // Notify parent that page is loaded
+        window.parent.postMessage({ 
+            status: 'loaded',
+            url: window.location.href
+        }, '*');
+        
+        // Update URL display when popstate event occurs
+        window.addEventListener('popstate', updateCurrentUrlDisplay);
+    </script>
+</body>
+</html>
