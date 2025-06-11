@@ -15,15 +15,23 @@ This repository includes a test environment for the DynamicIframe component, whi
    npm install
    ```
 
-2. Start the test environment (both servers at once):
+2. Start the test and ionic applications
+
+   inside test-iframe-app
    ```
-   node start-test.js
+   npm run start
    ```
+
+   inside ionic-app
+   ```
+   npm run dev
+   ```
+   
    This will start:
    - The test iframe server on port 3001
-   - The Ionic app on port 3000
+   - The Ionic app on port 5173
 
-3. Open the Ionic app in a browser at http://localhost:3000 and navigate to the "Iframe Test" tab.
+3. Open the Ionic app in a browser at http://localhost:5173 and navigate to the "Iframe Test" tab.
 
 4. Test the DynamicIframe component by navigating between pages in the iframe and using the back button.
 
