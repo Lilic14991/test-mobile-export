@@ -57,7 +57,8 @@ const Tab1: React.FC = () => {
           Send Test Notification
         </button>
         <div className="iframe-position">
-          <DynamicIframe
+        <h1>Demo Site</h1>
+          {/* <DynamicIframe
             width={858}
             height={487}
             src="https://www.youtube.com/embed/UIQjL4WkF-4"
@@ -65,7 +66,7 @@ const Tab1: React.FC = () => {
             allowFullScreen
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             referrerPolicy="strict-origin-when-cross-origin"
-          />
+          /> */}
         </div>
       </IonContent>
     </IonPage>
