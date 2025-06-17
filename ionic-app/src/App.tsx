@@ -10,9 +10,11 @@ import {
   setupIonicReact,
 } from "@ionic/react";
 import { IonReactRouter } from "@ionic/react-router";
-import { triangle, browsers } from "ionicons/icons";
+import { card, beer } from "ionicons/icons";
 import Tab1 from "./pages/Tab1";
 import IframeTest from "./pages/IframeTest";
+import { useEffect } from "react";
+import { notificationService } from "./services";
 
 /* Core CSS required for Ionic components to work properly */
 import "@ionic/react/css/core.css";
@@ -49,6 +51,21 @@ import "./theme/variables.css";
 setupIonicReact();
 
 const App: React.FC = () => {
+  // Initialize notification service
+  useEffect(() => {
+    const initApp = async () => {
+      try {
+        // Initialize notifications
+        await notificationService.initialize();
+        console.log("Notification service initialized");
+      } catch (error) {
+        console.error("Failed to initialize notification service:", error);
+      }
+    };
+    
+    initApp();
+  }, []);
+
   return (
     <IonApp>
       <IonReactRouter>
@@ -66,11 +83,11 @@ const App: React.FC = () => {
           </IonRouterOutlet>
           <IonTabBar slot="bottom">
             <IonTabButton tab="tab1" href="/tab1">
-              <IonIcon aria-hidden="true" icon={triangle} />
+              <IonIcon aria-hidden="true" icon={card} />
               <IonLabel>Tab 1</IonLabel>
             </IonTabButton>
             <IonTabButton tab="iframe-test" href="/iframe-test">
-              <IonIcon aria-hidden="true" icon={browsers} />
+              <IonIcon aria-hidden="true" icon={beer} />
               <IonLabel>Iframe Test</IonLabel>
             </IonTabButton>
           </IonTabBar>
