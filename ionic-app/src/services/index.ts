@@ -5,13 +5,16 @@
  * making it easier to import them in other parts of the app.
  */
 
-import notificationService from './NotificationService';
+import notificationService, { NotificationOptions } from './NotificationService';
 import notificationUtils from './notificationUtils';
 
 // Export individual services
 export { notificationService, notificationUtils };
 
-// Export types from services
+// Export our custom types
+export type { NotificationOptions } from './NotificationService';
+
+// Export types from Capacitor
 export type { 
   PermissionStatus,
   LocalNotificationSchema,

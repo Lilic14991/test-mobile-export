@@ -8,6 +8,24 @@ import {
 } from '@capacitor/local-notifications';
 
 /**
+ * Interface for unified notification options
+ */
+export interface NotificationOptions {
+  title: string;
+  body: string;
+  id?: number;
+  delayInSeconds?: number;
+  scheduledDateTime?: Date;
+  repeats?: boolean;
+  every?: 'minute' | 'hour' | 'day' | 'week' | 'month' | 'year';
+  count?: number;
+  sound?: string;
+  attachments?: any[];
+  actions?: { id: string; title: string }[];
+  extra?: Record<string, any> | null;
+}
+
+/**
  * NotificationService - A service for managing local notifications in the app
  * 
  * This service provides methods for:
@@ -63,167 +81,63 @@ class NotificationService {
   }
 
   /**
-   * Schedule a simple notification
-   * @param title Notification title
-   * @param body Notification body text
-   * @param id Unique notification ID
-   * @param delayInSeconds Delay in seconds before showing the notification
-   * @returns Promise that resolves when the notification is scheduled
+   * Unified method to send a notification
    */
-  async scheduleNotification(
-    title: string,
-    body: string,
-    id: number = Math.floor(Math.random() * 10000),
-    delayInSeconds: number = 5
-  ): Promise<void> {
-    await LocalNotifications.schedule({
-      notifications: [
-        {
-          title,
-          body,
-          id,
-          schedule: { at: new Date(Date.now() + delayInSeconds * 1000) },
-          sound: 'default',
-          attachments: undefined,
-          actionTypeId: '',
-          extra: null
-        }
-      ]
-    });
-  }
+  async sendNotification(options: NotificationOptions): Promise<void> {
+    const {
+      title,
+      body,
+      id = Math.floor(Math.random() * 10000),
+      delayInSeconds,
+      scheduledDateTime,
+      repeats = false,
+      every,
+      count,
+      sound = 'default',
+      attachments,
+      actions,
+      extra,
+    } = options;
 
-  /**
-   * Schedule a notification with a specific date and time
-   * @param title Notification title
-   * @param body Notification body text
-   * @param scheduledDateTime Date and time to show the notification
-   * @param id Unique notification ID
-   * @returns Promise that resolves when the notification is scheduled
-   */
-  async scheduleNotificationAt(
-    title: string,
-    body: string,
-    scheduledDateTime: Date,
-    id: number = Math.floor(Math.random() * 10000)
-  ): Promise<void> {
-    await LocalNotifications.schedule({
-      notifications: [
-        {
-          title,
-          body,
-          id,
-          schedule: { at: scheduledDateTime },
-          sound: 'default',
-          attachments: undefined,
-          actionTypeId: '',
-          extra: null
-        }
-      ]
-    });
-  }
+    // Prepare schedule object
+    const at =
+      scheduledDateTime ??
+      (delayInSeconds != null ? new Date(Date.now() + delayInSeconds * 1000) : new Date());
 
-  /**
-   * Schedule a repeating notification
-   * @param title Notification title
-   * @param body Notification body text
-   * @param interval Repeat interval in seconds
-   * @param id Unique notification ID
-   * @returns Promise that resolves when the notification is scheduled
-   */
-  async scheduleRepeatingNotification(
-    title: string,
-    body: string,
-    interval: number = 3600, // Default: 1 hour
-    id: number = Math.floor(Math.random() * 10000)
-  ): Promise<void> {
-    await LocalNotifications.schedule({
-      notifications: [
-        {
-          title,
-          body,
-          id,
-          schedule: { 
-            at: new Date(Date.now() + 10000), // Start after 10 seconds
-            repeats: true,
-            every: 'hour' // 'minute', 'hour', 'day', 'week', 'month', 'year'
+    const schedule = {
+      at,
+      repeats,
+      every,
+      count,
+    };
+
+    // Register actions if present
+    const actionTypeId = actions ? 'CUSTOM_ACTIONS' : undefined;
+    if (actions && actions.length > 0) {
+      await LocalNotifications.registerActionTypes({
+        types: [
+          {
+            id: 'CUSTOM_ACTIONS',
+            actions,
           },
-          sound: 'default',
-          attachments: undefined,
-          actionTypeId: '',
-          extra: null
-        }
-      ]
-    });
-  }
+        ],
+      });
+    }
 
-  /**
-   * Schedule a notification with custom actions
-   * @param title Notification title
-   * @param body Notification body text
-   * @param actions Array of action buttons
-   * @param id Unique notification ID
-   * @returns Promise that resolves when the notification is scheduled
-   */
-  async scheduleNotificationWithActions(
-    title: string,
-    body: string,
-    actions: { id: string; title: string }[],
-    id: number = Math.floor(Math.random() * 10000)
-  ): Promise<void> {
-    // First, register the action types
-    await LocalNotifications.registerActionTypes({
-      types: [
-        {
-          id: 'CUSTOM_ACTIONS',
-          actions
-        }
-      ]
-    });
-
-    // Then schedule the notification with the action type
+    // Schedule the notification
     await LocalNotifications.schedule({
       notifications: [
         {
+          id,
           title,
           body,
-          id,
-          schedule: { at: new Date(Date.now() + 5000) },
-          sound: 'default',
-          attachments: undefined,
-          actionTypeId: 'CUSTOM_ACTIONS',
-          extra: null
-        }
-      ]
-    });
-  }
-
-  /**
-   * Schedule a notification with extra data
-   * @param title Notification title
-   * @param body Notification body text
-   * @param extraData Additional data to include with the notification
-   * @param id Unique notification ID
-   * @returns Promise that resolves when the notification is scheduled
-   */
-  async scheduleNotificationWithData(
-    title: string,
-    body: string,
-    extraData: Record<string, any>,
-    id: number = Math.floor(Math.random() * 10000)
-  ): Promise<void> {
-    await LocalNotifications.schedule({
-      notifications: [
-        {
-          title,
-          body,
-          id,
-          schedule: { at: new Date(Date.now() + 5000) },
-          sound: 'default',
-          attachments: undefined,
-          actionTypeId: '',
-          extra: extraData
-        }
-      ]
+          schedule,
+          sound,
+          attachments,
+          extra,
+          actionTypeId,
+        },
+      ],
     });
   }
 

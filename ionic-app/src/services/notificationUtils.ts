@@ -5,7 +5,7 @@
  * that extend the core functionality of the NotificationService.
  */
 
-import notificationService from './NotificationService';
+import notificationService, { NotificationOptions } from './NotificationService';
 import { LocalNotifications, ActionPerformed } from '@capacitor/local-notifications';
 
 /**
@@ -33,7 +33,12 @@ export const scheduleForTimeOfDay = async (
     scheduledTime.setDate(scheduledTime.getDate() + 1);
   }
   
-  await notificationService.scheduleNotificationAt(title, body, scheduledTime, id);
+  await notificationService.schedule({
+    title,
+    body,
+    id,
+    schedule: { at: scheduledTime }
+  });
 };
 
 /**
@@ -68,7 +73,12 @@ export const scheduleForDayOfWeek = async (
   scheduledTime.setDate(now.getDate() + daysToAdd);
   scheduledTime.setHours(hour, minute, 0, 0);
   
-  await notificationService.scheduleNotificationAt(title, body, scheduledTime, id);
+  await notificationService.schedule({
+    title,
+    body,
+    id,
+    schedule: { at: scheduledTime }
+  });
 };
 
 /**
@@ -89,21 +99,21 @@ export const scheduleCountdown = async (
 ): Promise<void> => {
   // Schedule countdown notifications
   for (let i = countFrom; i > 0; i--) {
-    await notificationService.scheduleNotification(
-      `${title} - ${i}`,
-      `${i} ${i === 1 ? 'minute' : 'minutes'} remaining`,
-      baseId + i,
-      intervalSeconds * (countFrom - i + 1)
-    );
+    await notificationService.schedule({
+      title: `${title} - ${i}`,
+      body: `${i} ${i === 1 ? 'minute' : 'minutes'} remaining`,
+      id: baseId + i,
+      schedule: { at: new Date(Date.now() + intervalSeconds * (countFrom - i + 1) * 1000) }
+    });
   }
   
   // Schedule the final notification
-  await notificationService.scheduleNotification(
+  await notificationService.schedule({
     title,
-    finalMessage,
-    baseId,
-    intervalSeconds * (countFrom + 1)
-  );
+    body: finalMessage,
+    id: baseId,
+    schedule: { at: new Date(Date.now() + intervalSeconds * (countFrom + 1) * 1000) }
+  });
 };
 
 /**
@@ -121,15 +131,16 @@ export const scheduleWithSnooze = async (
   id: number = Math.floor(Math.random() * 10000)
 ): Promise<void> => {
   // Register a custom action type for snooze
-  await notificationService.scheduleNotificationWithActions(
+  await notificationService.schedule({
     title,
     body,
-    [
+    id,
+    actions: [
       { id: 'snooze', title: `Snooze ${snoozeMinutes} min` },
       { id: 'dismiss', title: 'Dismiss' }
     ],
-    id
-  );
+    schedule: { at: new Date(Date.now() + 5000) }
+  });
   
   // Set up a listener for the snooze action
   const actionListener = await LocalNotifications.addListener(
@@ -141,12 +152,12 @@ export const scheduleWithSnooze = async (
       if (actionId === 'snooze' && notification.id === id) {
         // Schedule a new notification after the snooze period
         const snoozeTime = new Date(Date.now() + snoozeMinutes * 60 * 1000);
-        await notificationService.scheduleNotificationAt(
-          `${title} (Snoozed)`,
+        await notificationService.schedule({
+          title: `${title} (Snoozed)`,
           body,
-          snoozeTime,
-          id + 1 // Use a different ID to avoid conflicts
-        );
+          id: id + 1, // Use a different ID to avoid conflicts
+          schedule: { at: snoozeTime }
+        });
         
         // Remove this listener to avoid memory leaks
         actionListener.remove();

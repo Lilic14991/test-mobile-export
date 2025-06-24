@@ -9,11 +9,11 @@ import {
   IonItem,
   IonLabel,
 } from "@ionic/react";
-import DynamicIframe from "../components/DynamicIframe";
 import "./Tab1.css";
 import React, { useState, useEffect } from "react";
-import { notificationService, notificationUtils } from "../services";
+import { notificationService, notificationUtils, NotificationOptions } from "../services";
 import { LocalNotifications } from "@capacitor/local-notifications";
+import { Browser } from '@capacitor/browser';
 
 const Tab1: React.FC = () => {
   const [pendingNotifications, setPendingNotifications] = useState<number>(0);
@@ -34,21 +34,28 @@ const Tab1: React.FC = () => {
     let actionListener: any = null;
     
     const setupListeners = async () => {
-      receivedListener = await LocalNotifications.addListener(
-        'localNotificationReceived', 
-        () => {
-          // Update the count when a notification is received
-          updatePendingCount();
-        }
-      );
-      
       actionListener = await LocalNotifications.addListener(
-        'localNotificationActionPerformed', 
-        () => {
-          // Update the count when a notification action is performed
-          updatePendingCount();
+    'localNotificationActionPerformed',
+    async (notificationAction) => {
+      // Update the count when a notification action is performed
+      updatePendingCount();
+
+      const url = notificationAction.notification.extra?.url;
+      if (url) {
+        try {
+          if ((window as any).Capacitor?.isNativePlatform) {
+            // Use Capacitor Browser on native platforms
+            await Browser.open({ url });
+          } else {
+            // Fallback for web
+            window.open(url, '_blank');
+          }
+        } catch (err) {
+          console.error('Failed to open URL from notification:', err);
         }
-      );
+      }
+    }
+  );
     };
     
     setupListeners();
@@ -66,56 +73,60 @@ const Tab1: React.FC = () => {
   };
 
   const sendBasicNotification = async () => {
-    await notificationService.scheduleNotification(
-      "Basic Notification",
-      "This is a simple notification from your Ionic app!",
-      Math.floor(Math.random() * 10000),
-      2 // Show after 2 seconds
-    );
+    await notificationService.sendNotification({
+    title: 'Reminder',
+    body: 'This is a delayed notification',
+    delayInSeconds: 5
+});
     updatePendingCount();
   };
 
   const sendScheduledNotification = async () => {
     // Schedule a notification for 1 minute from now
     const scheduledTime = new Date(Date.now() + 60000);
-    await notificationService.scheduleNotificationAt(
-      "Scheduled Notification",
-      `This notification was scheduled for ${scheduledTime.toLocaleTimeString()}`,
-      scheduledTime
-    );
+    await notificationService.sendNotification({
+    title: 'Meeting',
+    body: `Project meeting starts in ${scheduledTime}`,
+    scheduledDateTime: new Date(scheduledTime)
+});
     updatePendingCount();
   };
 
   const sendRepeatingNotification = async () => {
-    await notificationService.scheduleRepeatingNotification(
-      "Repeating Notification",
-      "This notification will repeat every hour",
-      3600 // 1 hour in seconds
-    );
+    // send notification every hour
+    await notificationService.sendNotification({
+    title: 'Hydrate!',
+    body: 'Time to drink water',
+    repeats: true,
+    every: 'hour'
+});
     updatePendingCount();
   };
 
   const sendNotificationWithActions = async () => {
-    await notificationService.scheduleNotificationWithActions(
-      "Action Notification",
-      "This notification has custom action buttons",
-      [
-        { id: "reply", title: "Reply" },
-        { id: "dismiss", title: "Dismiss" }
-      ]
-    );
-    updatePendingCount();
+    await notificationService.sendNotification({
+    title: 'Action Needed',
+    body: 'Approve the request?',
+    actions: [
+      { id: 'approve', title: 'Approve' },
+      { id: 'deny', title: 'Deny' },
+    ],
+    extra: { requestId: 1234 }
+  });
+      updatePendingCount();
   };
 
   const sendNotificationWithData = async () => {
-    await notificationService.scheduleNotificationWithData(
-      "Data Notification",
-      "This notification contains extra data",
-      { userId: 123, type: "reminder", priority: "high" }
-    );
+    await notificationService.sendNotification({
+    title: 'Check this out!',
+    body: 'Tap to open YouTube 🎥',
+    extra: {
+    url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+  }
+});
     updatePendingCount();
   };
-
+  
   const cancelAllNotifications = async () => {
     await notificationService.cancelAllNotifications();
     updatePendingCount();

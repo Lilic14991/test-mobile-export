@@ -3,12 +3,12 @@
 This directory contains comprehensive notification services built on top of `@capacitor/local-notifications` for use in Ionic applications. These services provide a clean, easy-to-use interface for working with local notifications in your app.
 
 The services include:
-1. **NotificationService.ts** - Core service for basic notification functionality
+1. **NotificationService.ts** - Core service for basic notification functionality with a unified scheduling API
 2. **notificationUtils.ts** - Utility functions that extend the core service with advanced features
 
 ## Features
 
-- Simple API for scheduling various types of notifications
+- Unified API for scheduling various types of notifications
 - Support for basic, scheduled, and repeating notifications
 - Custom notification actions
 - Notification data payloads
@@ -38,6 +38,41 @@ function App() {
   
   // Rest of your app...
 }
+```
+
+### Unified Schedule Method
+
+The service provides a unified `schedule` method that can handle all notification types through a single configuration object:
+
+```typescript
+import { NotificationOptions } from './services';
+
+// Create notification options
+const options: NotificationOptions = {
+  title: "Unified Notification",
+  body: "This notification uses the unified schedule method",
+  id: 123, // Optional: notification ID
+  schedule: { 
+    at: new Date(Date.now() + 5000), // Show after 5 seconds
+    // For repeating notifications:
+    // repeats: true,
+    // every: 'hour' // 'minute', 'hour', 'day', 'week', 'month', 'year'
+  },
+  sound: "default",
+  // For notifications with actions:
+  // actions: [
+  //   { id: "reply", title: "Reply" },
+  //   { id: "dismiss", title: "Dismiss" }
+  // ],
+  // For notifications with data:
+  // extra: { 
+  //   userId: 123,
+  //   type: "reminder"
+  // }
+};
+
+// Schedule the notification
+await notificationService.schedule(options);
 ```
 
 ### Basic Notification
@@ -193,6 +228,34 @@ If notifications aren't working as expected:
 4. Check that the notification ID is unique
 5. On Android, verify that notification channels are properly configured
 6. On iOS, check that the app has been granted notification permissions in system settings
+
+## Migrating to the Unified API
+
+The service now provides a unified `schedule` method that can handle all notification types. While the existing methods (`scheduleNotification`, `scheduleNotificationAt`, etc.) are still available for backward compatibility, it's recommended to use the unified API for new code:
+
+```typescript
+// Old way:
+await notificationService.scheduleNotificationWithData(
+  "Data Notification",
+  "This notification contains extra data",
+  { userId: 123, type: "reminder" }
+);
+
+// New unified way:
+await notificationService.schedule({
+  title: "Data Notification",
+  body: "This notification contains extra data",
+  extra: { userId: 123, type: "reminder" },
+  schedule: { at: new Date(Date.now() + 5000) }
+});
+```
+
+The unified API offers several advantages:
+- More flexible and extensible
+- Consistent interface for all notification types
+- Easier to add new notification features in the future
+- More intuitive parameter naming
+- Better TypeScript support with the `NotificationOptions` interface
 
 ## Advanced Notification Utilities
 
