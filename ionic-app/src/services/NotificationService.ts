@@ -157,7 +157,7 @@ class NotificationService {
     async cancelNotification(id: number): Promise<void> {
       // Get all currently pending notifications
       const { notifications } = await LocalNotifications.getPending();
-      console.log(notifications, "pending!!!")
+      
       const target = notifications.find(n => n.id === id);
 
       if (!target) {
@@ -185,7 +185,6 @@ class NotificationService {
     async cancelAllNotifications(): Promise<void> {
       // Cancel all scheduled notifications
       await LocalNotifications.cancel({ notifications: [] });
-
       // Confirm that all are cleared
       const { notifications: afterCancel } = await LocalNotifications.getPending();
 
