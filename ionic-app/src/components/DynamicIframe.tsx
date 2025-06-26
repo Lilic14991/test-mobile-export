@@ -1,5 +1,6 @@
 import React, { forwardRef, useEffect, useRef, useState, useCallback } from "react";
 import { App as CapacitorApp } from "@capacitor/app";
+import notificationService from "../services/NotificationService";
 
 type DynamicIFrameProps = {
   initialUrl: string;
@@ -50,6 +51,10 @@ const DynamicIframe = forwardRef<DynamicIframeHandle, DynamicIFrameProps>(
       }
     }, []);
     
+    const postToIframe = (message: any) => {
+      iframeRef.current?.contentWindow?.postMessage(message, "*");
+    };
+
     // Add URL to navigation stack without duplicates
     const addToNavStack = useCallback((url: string) => {
       // Don't add if it's the same as the last URL
@@ -119,24 +124,84 @@ const DynamicIframe = forwardRef<DynamicIframeHandle, DynamicIFrameProps>(
     }));
 
     useEffect(() => {
-      const handleMessage = (event: MessageEvent) => {
+      const handleMessage = async (event: MessageEvent) => {
         // Check origin if specified
         if (origin && event.origin !== origin) {
           return;
         }
+
+        const data = event.data;
         
         // Handle different message formats
-        const url = event.data?.url || (typeof event.data === 'string' ? event.data : null);
+        const url = data?.url || (typeof data === 'string' ? data : null);
         if (typeof url === "string") {
-          
           // Add to navigation stack if it's a new URL
           addToNavStack(url);
-          
-          // No need to navigate the iframe here since the message came from the iframe itself
-          // indicating it has already navigated
-        } else {
-          console.log("Received message with no valid URL:", event.data);
+          return;
         }
+
+        switch (data?.type) {
+          case "schedule-notification": 
+            try {
+              await notificationService.sendNotification({
+                title: data.payload.title || "No Title",
+                body: data.payload.body || "No Body",
+                id: data.payload.id,
+                delayInSeconds: Math.floor((data.payload.delayMs || 1000) / 1000),
+                scheduledDateTime: data.payload.scheduledDateTime
+                  ? new Date(data.payload.scheduledDateTime)
+                  : undefined,
+                repeats: data.payload.repeats,
+                every: data.payload.every,
+                count: data.payload.count,
+                sound: data.payload.sound,
+                attachments: data.payload.attachments,
+                actions: data.payload.actions,
+                extra: data.payload.extra,
+              });
+
+              postToIframe({type: 'notification-scheduled', id: data.payload.id});
+            } catch(err: any) {
+              postToIframe({
+                type: "notification-error",
+                error: err?.message || "Failed to schedule notification"
+              });
+            }
+            break;
+
+            case "cancel-notification": 
+              try {
+                await notificationService.cancelNotification(data.payload.id);
+                postToIframe({type: 'notification-canceled', id: data.payload.id});
+              } catch(err: any) {
+                  postToIframe({
+                    type: "notification-error",
+                    error: err?.message || "Failed to cancel notification",
+                  });
+              }
+              break;
+
+            case "get-pending-notifications":
+              try {
+                const pending = await notificationService.getPendingNotifications();
+                postToIframe({ type: "pending-notifications", data: pending });
+              } catch (err: any) {
+                postToIframe({
+                  type: "notification-error",
+                  error: err?.message || "Failed to fetch pending notifications",
+                });
+              }
+              break;
+
+            default: 
+              console.log("Unknown postMessage type: ", data);
+        }
+
+        //   // No need to navigate the iframe here since the message came from the iframe itself
+        //   // indicating it has already navigated
+        // } else {
+        //   console.log("Received message with no valid URL:", event.data);
+        // }
       };
 
       window.addEventListener('message', handleMessage);

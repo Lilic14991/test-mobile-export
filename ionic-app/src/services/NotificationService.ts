@@ -150,20 +150,51 @@ class NotificationService {
     return notifications;
   }
 
-  /**
-   * Cancel a specific notification by ID
-   * @param id Notification ID to cancel
-   */
-  async cancelNotification(id: number): Promise<void> {
-    await LocalNotifications.cancel({ notifications: [{ id }] });
-  }
+    /**
+    * Cancel a specific notification by ID (with verification)
+    * @param id Notification ID to cancel
+    */
+    async cancelNotification(id: number): Promise<void> {
+      // Get all currently pending notifications
+      const { notifications } = await LocalNotifications.getPending();
+      console.log(notifications, "pending!!!")
+      const target = notifications.find(n => n.id === id);
 
-  /**
-   * Cancel all pending notifications
-   */
-  async cancelAllNotifications(): Promise<void> {
-    await LocalNotifications.cancel({ notifications: [] });
-  }
+      if (!target) {
+        console.warn(`[NotificationService] Cancel: ID ${id} not found in pending notifications.`);
+        return; // Optionally throw if you want to enforce existence
+      }
+
+      // Attempt to cancel the notification
+      await LocalNotifications.cancel({ notifications: [{ id }] });
+
+      // Verify cancellation
+      const { notifications: afterCancel } = await LocalNotifications.getPending();
+      const stillExists = afterCancel.some(n => n.id === id);
+
+      if (stillExists) {
+        throw new Error(`[NotificationService] Failed to cancel notification ID ${id}`);
+      }
+
+      console.log(`[NotificationService] Notification ID ${id} successfully cancelled.`);
+    }
+
+    /**
+    * Cancel all pending notifications (with optional confirmation)
+    */
+    async cancelAllNotifications(): Promise<void> {
+      // Cancel all scheduled notifications
+      await LocalNotifications.cancel({ notifications: [] });
+
+      // Confirm that all are cleared
+      const { notifications: afterCancel } = await LocalNotifications.getPending();
+
+      if (afterCancel.length > 0) {
+        throw new Error(`[NotificationService] Failed to cancel all notifications. ${afterCancel.length} remaining.`);
+      }
+
+      console.log("[NotificationService] All notifications successfully cancelled.");
+    }
 }
 
 // Create a singleton instance
