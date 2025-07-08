@@ -6,35 +6,107 @@
     <title>Test Iframe App - Home</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f9f9f9;
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+            margin-top: 1.5em;
+        }
+        p {
+            margin-bottom: 1.2em;
         }
         nav {
-            background-color: #f0f0f0;
-            padding: 10px;
-            margin-bottom: 20px;
+            background-color: #eaeaea;
+            padding: 12px 20px;
+            margin-bottom: 25px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
         nav a {
-            margin-right: 15px;
+            margin-right: 20px;
             text-decoration: none;
-            color: #333;
+            color: #007bff;
+            font-weight: 500;
+            transition: color 0.3s ease;
         }
         nav a:hover {
+            color: #0056b3;
             text-decoration: underline;
         }
         .content {
             border: 1px solid #ddd;
-            padding: 20px;
+            padding: 25px;
             min-height: 300px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 20px 0;
+        }
+        canvas {
+            display: block;
+            margin: 20px auto;
+        }
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            body {
+                padding: 15px;
+            }
+            h1 {
+                font-size: 1.8rem;
+            }
+            h2 {
+                font-size: 1.5rem;
+            }
+            nav {
+                padding: 10px 15px;
+            }
+            nav a {
+                margin-right: 15px;
+                font-size: 0.9rem;
+            }
+            .content {
+                padding: 15px;
+            }
+        }
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+            h1 {
+                font-size: 1.5rem;
+            }
+            h2 {
+                font-size: 1.3rem;
+            }
+            nav {
+                padding: 8px 10px;
+                display: flex;
+                flex-direction: column;
+            }
+            nav a {
+                margin-right: 0;
+                margin-bottom: 8px;
+                font-size: 0.85rem;
+            }
+            .content {
+                padding: 10px;
+            }
         }
     </style>
     <script>
         // Function to handle messages from parent window
         window.addEventListener('message', function(event) {
-
-            
             // Check if we received a navigation request
             if (event.data && event.data.goto) {
                 let targetUrl = event.data.goto;
@@ -44,6 +116,9 @@
                 // Extract the path portion of the URL (remove the origin)
                 const urlObj = new URL(targetUrl);
                 const pathUrl = urlObj.pathname + urlObj.search + urlObj.hash;
+                
+                // Check if this is a backward navigation (e.g., triggered by a back button)
+                const isBackNavigation = event.data.isBack || false;
                 
                 // For relative URLs, use history API if possible to avoid page reload
                 try {
@@ -57,8 +132,10 @@
                     // Notify parent about the navigation
                     window.parent.postMessage({ url: window.location.href }, '*');
                     
-                    // Update the page content based on the new URL
-                    updatePageContent(pathUrl);
+                    // Update the page content based on the new URL, unless it's a back navigation
+                    if (!isBackNavigation) {
+                        updatePageContent(pathUrl);
+                    }
                     
                     return;
                 } catch (e) {
@@ -73,6 +150,39 @@
         // Function to update page content based on URL without reloading
         function updatePageContent(url) {
             updateCurrentUrlDisplay();
+            // Extract the page identifier from the URL
+            let pageId = url.split('/').pop().split('.')[0] || 'index';
+            if (pageId === 'index') {
+                pageId = 'home';
+            }
+            // Define content for each page
+            const contentMap = {
+                'home': {
+                    title: 'Home Page',
+                    body: '<p>Welcome to the test iframe application!</p><p>Click on the navigation links above to explore different pages.</p><p>Navigation stack will be maintained by the parent DynamicIframe component.</p><div style="margin-top: 20px;"><img src="https://via.placeholder.com/600x300?text=Welcome+Image" alt="Welcome Image" style="max-width: 100%; height: auto; border-radius: 5px;"></div><canvas id="homeCanvas" width="300" height="150" style="margin-top: 20px; border: 1px solid #ddd;"></canvas>'
+                },
+                'page1': {
+                    title: 'Page 1 - Feedback Form',
+                    body: '<p>This is Page 1 of the test iframe application.</p><p>Click on the navigation links above to test iframe navigation.</p><div id="form-container" class="form-container"><h3>Feedback Form</h3><p>We value your feedback on our app.</p><form id="feedback-form" onsubmit="return handleFormSubmit(event, \'feedback\')"><div class="form-group"><label for="rating">Rating (1-5):</label><input type="number" id="rating" name="rating" min="1" max="5" required></div><div class="form-group"><label for="comments">Comments:</label><textarea id="comments" name="comments" rows="4" required></textarea></div><div class="form-group"><button type="submit">Submit Feedback</button><button type="button" onclick="navigateTo(\'http://localhost:3001/pages/page2.html\')" style="background-color: #607d8b; margin-left: 10px;">Go to Page 2</button><button type="button" onclick="navigateTo(\'http://localhost:3001/index.html\', true)" style="background-color: #607d8b; margin-left: 10px;">Back</button></div></form></div>'
+                },
+                'page2': {
+                    title: 'Page 2 - Event Registration Form',
+                    body: '<p>This is Page 2 of the test iframe application.</p><p>Click on the navigation links above to test iframe navigation.</p><div id="form-container" class="form-container"><h3>Event Registration Form</h3><p>Register for our upcoming virtual event!</p><form id="event-form" onsubmit="return handleFormSubmit(event, \'event\')"><div class="form-group"><label for="attendeeName">Name:</label><input type="text" id="attendeeName" name="attendeeName" required></div><div class="form-group"><label for="attendeeEmail">Email:</label><input type="email" id="attendeeEmail" name="attendeeEmail" required></div><div class="form-group"><label for="eventDate">Preferred Date:</label><input type="date" id="eventDate" name="eventDate" required></div><div class="form-group"><button type="submit">Register</button><div style="display: flex; gap: 10px; margin-top: 10px;"><button type="button" onclick="navigateTo(\'http://localhost:3001/pages/page1.html\')" style="background-color: #607d8b;">Go to Page 1</button><button type="button" onclick="navigateTo(\'http://localhost:3001/pages/page3.html\')" style="background-color: #607d8b;">Go to Page 3</button><button type="button" onclick="navigateTo(\'http://localhost:3001/index.html\', true)" style="background-color: #607d8b;">Back</button></div></div></form></div>'
+                },
+                'page3': {
+                    title: 'Page 3 - Contact Form',
+                    body: '<p>This is Page 3 of the test iframe application.</p><div id="form-container" class="form-container"><h3>Contact Form</h3><p>Fill out this form to get in touch with us.</p><form id="contact-form" onsubmit="return handleFormSubmit(event, \'contact\')"><div class="form-group"><label for="name">Name:</label><input type="text" id="name" name="name" required></div><div class="form-group"><label for="email">Email:</label><input type="email" id="email" name="email" required></div><div class="form-group"><label for="message">Message:</label><textarea id="message" name="message" rows="4" required></textarea></div><div class="form-group"><button type="submit">Submit</button><button type="button" onclick="navigateTo(\'http://localhost:3001/pages/page2.html\')" style="background-color: #607d8b; margin-left: 10px;">Back to Page 2</button><button type="button" onclick="navigateTo(\'http://localhost:3001/index.html\', true)" style="background-color: #607d8b; margin-left: 10px;">Back to Home</button></div></form></div>'
+                }
+            };
+            // Update the content area with the appropriate content
+            const content = contentMap[pageId] || contentMap['home'];
+            const contentDiv = document.querySelector('.content');
+            // Clear existing content and set new content with preserved styling
+            contentDiv.innerHTML = `<h2>${content.title}</h2>${content.body}`;
+            // Re-draw canvas if on home page
+            if (pageId === 'home') {
+                drawCanvas();
+            }
         }
 
         // Function to resolve relative URLs to absolute paths
@@ -84,7 +194,7 @@
         }
         
         // Function to navigate and notify parent
-        function navigateTo(url) {
+        function navigateTo(url, isBack = false) {
             // Resolve the URL to an absolute path
             const absoluteUrl = resolveUrl(url);
             
@@ -93,7 +203,7 @@
             const pathUrl = urlObj.pathname + urlObj.search + urlObj.hash;
             
             // Notify parent window about navigation
-            window.parent.postMessage({ url: absoluteUrl }, '*');
+            window.parent.postMessage({ url: absoluteUrl, isBack: isBack }, '*');
             
             // Try to use history API for smoother navigation
             try {
@@ -102,7 +212,12 @@
                 // Manually trigger a popstate event
                 const popStateEvent = new PopStateEvent('popstate', { state: {} });
                 window.dispatchEvent(popStateEvent);
-            
+                
+                // Update content only if it's not a back navigation
+                if (!isBack) {
+                    updatePageContent(pathUrl);
+                }
+                
                 return false;
             } catch (e) {
                 console.log('Could not use history API, falling back to default navigation', e);
@@ -114,7 +229,9 @@
         // Listen for popstate events (browser back/forward buttons)
         window.addEventListener('popstate', function(event) {
             // Notify parent about the navigation
-            window.parent.postMessage({ url: window.location.href }, '*');
+            window.parent.postMessage({ url: window.location.href, isBack: true }, '*');
+            // Do not update content on popstate to prevent page look changes during back/forward navigation
+            updateCurrentUrlDisplay();
         });
     </script>
 </head>
@@ -131,16 +248,21 @@
     
     <div class="content">
         <h2>Home Page</h2>
-        <p>This is the home page of the test iframe application.</p>
-        <p>Click on the navigation links above to test iframe navigation.</p>
+        <p>Welcome to the test iframe application!</p>
+        <p>Click on the navigation links above to explore different pages.</p>
         <p>Current URL: <span id="currentUrl"></span></p>
         <p>Navigation stack will be maintained by the parent DynamicIframe component.</p>
+        <div style="margin-top: 20px;"><img src="https://via.placeholder.com/600x300?text=Welcome+Image" alt="Welcome Image" style="max-width: 100%; height: auto; border-radius: 5px;"></div>
+        <canvas id="homeCanvas" width="300" height="150" style="margin-top: 20px; border: 1px solid #ddd;"></canvas>
     </div>
 
     <script>
         // Function to update the current URL display
         function updateCurrentUrlDisplay() {
-            document.getElementById('currentUrl').textContent = window.location.href;
+            const currentUrlElement = document.getElementById('currentUrl');
+            if (currentUrlElement) {
+                currentUrlElement.textContent = window.location.href;
+            }
         }
         
         // Display current URL
@@ -154,6 +276,106 @@
         
         // Update URL display when popstate event occurs
         window.addEventListener('popstate', updateCurrentUrlDisplay);
+        
+        // Update content on page load and navigation
+        window.addEventListener('load', function() {
+            updatePageContent(window.location.href);
+        });
+        
+// Draw on canvas for home page
+        function drawCanvas() {
+            var canvas = document.getElementById("homeCanvas");
+            if (canvas) {
+                var ctx = canvas.getContext("2d");
+                if (ctx) {
+                    ctx.fillStyle = "#4CAF50";
+                    ctx.fillRect(50, 50, 200, 50);
+                    ctx.fillStyle = "#fff";
+                    ctx.font = "20px Arial";
+                    ctx.fillText("Welcome!", 100, 80);
+                }
+            }
+        }
+        drawCanvas();
+        
+// Function to apply styles to dynamically inserted content
+        function applyDynamicStyles(pageId) {
+            // Ensure form-container and other elements have correct styles
+            var formContainer = document.getElementById("form-container");
+            if (formContainer) {
+                // Reset existing inline styles to avoid style persistence
+                formContainer.style.backgroundColor = "";
+                // Apply common styles
+                formContainer.style.marginTop = "25px";
+                formContainer.style.padding = "20px";
+                // Apply page-specific background color
+                if (pageId === 'page1') {
+                    formContainer.style.backgroundColor = "#e0f7fa";
+                } else if (pageId === 'page2') {
+                    formContainer.style.backgroundColor = "#e8f5e9";
+                } else if (pageId === 'page3') {
+                    formContainer.style.backgroundColor = "#fff3e0";
+                }
+                formContainer.style.borderRadius = "8px";
+                formContainer.style.boxShadow = "0 3px 10px rgba(0, 0, 0, 0.1)";
+            }
+            // Add more style applications if needed for other elements
+        }
+        
+        // Function to handle form submission for different forms
+        function handleFormSubmit(event, formType) {
+            event.preventDefault();
+            
+            let data = {};
+            let successMessage = '';
+            
+            if (formType === 'contact') {
+                const name = document.getElementById('name').value;
+                const email = document.getElementById('email').value;
+                const message = document.getElementById('message').value;
+                data = { name, email, message };
+                successMessage = `
+                    <h3>Form Submitted Successfully!</h3>
+                    <p>Thank you, ${name}, for your submission.</p>
+                    <p>We've received your message and will get back to you at ${email} soon.</p>
+                    <button onclick="navigateTo('http://localhost:3001/index.html')">Return to Home</button>
+                `;
+            } else if (formType === 'event') {
+                const attendeeName = document.getElementById('attendeeName').value;
+                const attendeeEmail = document.getElementById('attendeeEmail').value;
+                const eventDate = document.getElementById('eventDate').value;
+                data = { attendeeName, attendeeEmail, eventDate };
+                successMessage = `
+                    <h3>Registration Successful!</h3>
+                    <p>Thank you, ${attendeeName}, for registering.</p>
+                    <p>We've confirmed your attendance for ${eventDate} and will send details to ${attendeeEmail}.</p>
+                    <button onclick="navigateTo('http://localhost:3001/index.html')">Return to Home</button>
+                `;
+            } else if (formType === 'feedback') {
+                const rating = document.getElementById('rating').value;
+                const comments = document.getElementById('comments').value;
+                data = { rating, comments };
+                successMessage = `
+                    <h3>Feedback Received!</h3>
+                    <p>Thank you for your feedback with a rating of ${rating}/5.</p>
+                    <p>We appreciate your comments and will use them to improve.</p>
+                    <button onclick="navigateTo('http://localhost:3001/index.html')">Return to Home</button>
+                `;
+            }
+            
+            console.log(`${formType} form submitted:`, data);
+            
+            // Show success message
+            document.getElementById('form-container').innerHTML = successMessage;
+            
+            // Notify parent about the form submission
+            window.parent.postMessage({ 
+                type: `${formType}_submit`,
+                data: data
+            }, '*');
+            
+            return false;
+        }
     </script>
 
     <!-- Notifications exposed to the parent -->
