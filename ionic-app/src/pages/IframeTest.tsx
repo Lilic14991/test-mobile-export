@@ -3,62 +3,48 @@ import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonButtons, IonBu
 import { arrowBack } from 'ionicons/icons';
 import { Capacitor } from '@capacitor/core';
 import DynamicIframe, { DynamicIframeHandle } from '../components/DynamicIframe';
+import { getIframeUrl } from '../config/environment';
 
 const IframeTest: React.FC = () => {
   // State to store the iframe URL
-  const [baseUrl, setBaseUrl] = useState('http://localhost:3001/index.html');
+  const [baseUrl, setBaseUrl] = useState("");
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   
   // Function to try different URLs for Android
-  const tryDifferentUrls = () => {
-    // Array of possible URLs to try
-    const urlsToTry = [
-      { url: 'http://10.0.2.2:3001/index.html', description: 'Default Android Emulator Host' },
-      { url: 'http://localhost:3001/index.html', description: 'Localhost' },
-      // Add your development machine's actual IP here
-      { url: 'http://192.168.1.100:3001/index.html', description: 'Development Machine IP (change this)' },
-      // You can add more IPs to try
-    ];
+  // const tryDifferentUrls = () => {
+  //   // Array of possible URLs to try
+  //   const urlsToTry = [
+  //     { url: 'http://localhost:3001/', description: 'Localhost' },
+  //     { url: 'http://10.0.2.2:3001/', description: 'Default Android Emulator Host' },
+  //     // Add your development machine's actual IP here
+  //     { url: 'http://192.168.1.107:3001/', description: 'Development Machine IP' },
+  //   ];
     
-    // Get the current URL index from localStorage or start with 0
-    const storedIndex = localStorage.getItem('urlIndex');
-    const currentIndex = storedIndex ? parseInt(storedIndex, 10) : 0;
+  //   // Get the current URL index from localStorage or start with 0
+  //   const storedIndex = typeof window !== 'undefined' ? localStorage.getItem('urlIndex') : null;
+  //   const currentIndex = storedIndex ? parseInt(storedIndex, 10) : 0;
     
-    // Get the URL to try
-    const urlData = urlsToTry[currentIndex % urlsToTry.length];
+  //   // Get the URL to try
+  //   const urlData = urlsToTry[currentIndex % urlsToTry.length];
+  //   console.log(urlData, "url data")
     
-    // Set the URL
-    setBaseUrl(urlData.url);
-    setToastMessage(`Trying URL ${currentIndex + 1}/${urlsToTry.length}: ${urlData.description} - ${urlData.url}`);
-    setShowToast(true);
+  //   // Set the URL
+  //   setBaseUrl(urlData.url);
+  //   setToastMessage(`Trying URL ${currentIndex + 1}/${urlsToTry.length}: ${urlData.description} - ${urlData.url}`);
+  //   setShowToast(true);
     
-    // Store the next index for next time
-    localStorage.setItem('urlIndex', ((currentIndex + 1) % urlsToTry.length).toString());
-  };
+  //   // Store the next index for next time
+  //   localStorage.setItem('urlIndex', ((currentIndex + 1) % urlsToTry.length).toString());
+  // };
 
   // Button to try a different URL
-  const tryNextUrl = () => {
-    tryDifferentUrls();
-  };
+  // const tryNextUrl = () => {
+  //   tryDifferentUrls();
+  // };
 
   // Determine the correct URL based on platform
-  useEffect(() => {
-    const platform = Capacitor.getPlatform();
-    
-    if (platform === 'android') {
-      // On Android, try different URLs
-      tryDifferentUrls();
-    } else if (platform === 'ios') {
-      // On iOS simulator, localhost should work, but you might need to use the machine's IP for physical devices
-      setToastMessage('Using iOS URL: http://localhost:3001/index.html');
-      setShowToast(true);
-    } else {
-      // Web or other platforms
-      setToastMessage('Using Web URL: http://localhost:3001/index.html');
-      setShowToast(true);
-    }
-  }, []);
+  const iframeUrl: string = getIframeUrl(baseUrl);
   
   // Create a ref to the iframe component
   const iframeRef = useRef<DynamicIframeHandle>(null);
@@ -82,9 +68,9 @@ const IframeTest: React.FC = () => {
           </IonButtons>
           <IonTitle>Iframe Test</IonTitle>
           <IonButtons slot="end">
-            <IonButton onClick={tryNextUrl}>
+            {/* <IonButton onClick={tryNextUrl}>
               Try Next URL
-            </IonButton>
+            </IonButton> */}
           </IonButtons>
         </IonToolbar>
       </IonHeader>
@@ -99,7 +85,7 @@ const IframeTest: React.FC = () => {
           <DynamicIframe
             ref={iframeRef}
             initialUrl={baseUrl}
-            src={baseUrl}
+            src={iframeUrl}
             width="100%"
             height="100%"
             title="Test Iframe"
