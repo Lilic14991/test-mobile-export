@@ -14,7 +14,7 @@ interface ConfigMap {
 
 const config: ConfigMap = {
   development: {
-    IFRAME_HOST: import.meta.env.VITE_IFRAME_HOST || '192.186.1.109',
+    IFRAME_HOST: import.meta.env.VITE_IFRAME_HOST || '192.186.1.108',
     IFRAME_PORT: import.meta.env.VITE_IFRAME_PORT || '3001',
     USE_HTTPS: false
   },

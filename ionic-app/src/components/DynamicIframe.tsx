@@ -1,147 +1,156 @@
 import React, { forwardRef, useEffect, useRef, useState, useCallback } from "react";
 import { App as CapacitorApp } from "@capacitor/app";
 import notificationService from "../services/NotificationService";
+import { Application, getApplication, getSandboxAttributes, getPermissionsPolicy, getIframeUrl } from "../config/applications";
 
-type DynamicIFrameProps = {
-  initialUrl: string;
-  origin?: string; 
-  width?: number | string;
-  height?: number | string;
-  title?: string;
-  [key: string]: any;
-};
+interface DynamicIFrameProps {
+  appId: string;
+  origin?: string;
+  onError?: (error: Error) => void;
+  onLoad?: () => void;
+}
 
-export type DynamicIframeHandle = {
+export interface DynamicIframeHandle {
   goBack: () => void;
-};
+}
 
 const DynamicIframe = forwardRef<DynamicIframeHandle, DynamicIFrameProps>(
-  ({ width = "100%", height = "100%", title, initialUrl, origin, ...rest }, ref) => {
+  ({ appId, origin, onError, onLoad, ...rest }, ref) => {
     const iframeRef = useRef<HTMLIFrameElement>(null);
-    const [navStack, setNavStack] = useState<string[]>([initialUrl]);
-    
-    // Keep track of the last URL to avoid duplicates
-    const lastUrlRef = useRef<string>(initialUrl);
-    
-    // Log when navStack changes
+    const [app, setApp] = useState<Application | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<Error | null>(null);
+    const [retryCount, setRetryCount] = useState(0);
+    const [navStack, setNavStack] = useState<string[]>([]);
+    const lastUrlRef = useRef<string>("");
+    const observerRef = useRef<IntersectionObserver | null>(null);
+
+    // Initialize application configuration
     useEffect(() => {
-      setNavStack(navStack);
-      console.log("Navigation stack updated:", navStack);
-    }, [navStack]);
-    
-    // Function to navigate the iframe without reloading
-    const navigateIframe = useCallback((url: string) => {
-      console.log("Navigating iframe to:", url);
-      
-      if (!iframeRef.current || !iframeRef.current.contentWindow) {
-        return;
+      const currentApp = getApplication(appId);
+      if (currentApp) {
+        setApp(currentApp);
+        const url = getIframeUrl(currentApp);
+        setNavStack([url]);
+        lastUrlRef.current = url;
+      } else {
+        setError(new Error(`Application with id ${appId} not found`));
       }
-      
-      // For cross-origin iframes, we should prioritize postMessage
-      // Try postMessage first as it works across origins
-      iframeRef.current.contentWindow.postMessage({ goto: url }, "*");
-      
-      // As a fallback, try direct navigation if possible (will likely fail for cross-origin)
+    }, [appId]);
+
+    // Setup lazy loading
+    useEffect(() => {
+      if (!app || app.loading.type === 'eager') return;
+
+      const options = {
+        threshold: app.loading.threshold || 0.1
+      };
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            setLoading(false);
+            observer.disconnect();
+          }
+        });
+      }, options);
+
+      if (iframeRef.current) {
+        observer.observe(iframeRef.current);
+      }
+
+      observerRef.current = observer;
+      return () => observer.disconnect();
+    }, [app]);
+
+    // Error handling and retry logic
+    useEffect(() => {
+      if (!error || !app) return;
+
+      if (retryCount < app.errorHandling.retryAttempts) {
+        const timer = setTimeout(() => {
+          setError(null);
+          setRetryCount(prev => prev + 1);
+          setLoading(true);
+        }, app.errorHandling.retryDelay);
+
+        return () => clearTimeout(timer);
+      } else if (app.errorHandling.fallbackUrl) {
+        const url = app.errorHandling.fallbackUrl;
+        setNavStack([url]);
+        lastUrlRef.current = url;
+      }
+    }, [error, retryCount, app]);
+
+    // Navigation functions
+    const navigateIframe = useCallback((url: string) => {
+      if (!iframeRef.current?.contentWindow) return;
+
+      iframeRef.current.contentWindow.postMessage({ goto: url }, origin || "*");
+
       try {
-        // This will throw an error for cross-origin iframes
         iframeRef.current.contentWindow.location.href = url;
       } catch (e) {
-        console.log("Cannot access contentWindow location due to security restrictions (expected for cross-origin)");
-        // This is expected for cross-origin iframes, postMessage is already sent above
+        console.log("Cross-origin navigation handled via postMessage");
       }
-    }, []);
-    
-    const postToIframe = (message: any) => {
-      iframeRef.current?.contentWindow?.postMessage(message, "*");
-    };
+    }, [origin]);
 
-    // Add URL to navigation stack without duplicates
     const addToNavStack = useCallback((url: string) => {
-      // Don't add if it's the same as the last URL
-      if (lastUrlRef.current === url) {
-        return false;
-      }
-      
+      if (lastUrlRef.current === url) return false;
+
       let added = false;
-      
       setNavStack(prev => {
-        // Check if this URL is already the last one in the stack
-        if (prev.length > 0 && prev[prev.length - 1] === url) {
-          return prev;
-        }
-        
-        // Check if this URL is already in the stack somewhere else
+        if (prev[prev.length - 1] === url) return prev;
+
         const existingIndex = prev.indexOf(url);
         if (existingIndex >= 0 && existingIndex < prev.length - 1) {
-          // URL exists in the stack but not at the top
-          // Remove it from its current position to avoid duplicates
-          console.log("URL exists in stack, moving to top:", url);
           const newStack = [...prev.slice(0, existingIndex), ...prev.slice(existingIndex + 1)];
           added = true;
           lastUrlRef.current = url;
           return [...newStack, url];
         }
-        
-        // URL is not in the stack, add it
-        console.log("Adding new URL to navigation stack:", url);
+
         added = true;
         lastUrlRef.current = url;
         return [...prev, url];
       });
-      
+
       return added;
     }, []);
-    
-    // Extract navigation logic to a reusable function
+
     const navigateBack = useCallback(() => {
-      console.log("navigateBack called");
-      
       setNavStack(prevStack => {
         if (prevStack.length > 1) {
-          // Remove the current URL from the stack and navigate to the previous one
           const newStack = prevStack.slice(0, -1);
           const previousUrl = newStack[newStack.length - 1];
-          console.log("Navigating back to:", previousUrl);
-          
-          // Update last URL reference
           lastUrlRef.current = previousUrl;
-          
-          // Navigate the iframe to the previous URL
           navigateIframe(previousUrl);
-          
-          // Return the new stack without the current URL
           return newStack;
         }
-        
-        console.log("Cannot navigate back - at the beginning of stack");
         return prevStack;
       });
     }, [navigateIframe]);
 
-    // Implement the goBack method and expose it via ref
+    // Expose goBack method via ref
     React.useImperativeHandle(ref, () => ({
       goBack: navigateBack
     }));
 
+    // Message handling
     useEffect(() => {
       const handleMessage = async (event: MessageEvent) => {
-        // Check origin if specified
-        if (origin && event.origin !== origin) {
-          return;
-        }
+        if (origin && event.origin !== origin) return;
 
         const data = event.data;
-        
-        // Handle different message formats
         const url = data?.url || (typeof data === 'string' ? data : null);
+        
         if (typeof url === "string") {
-          // Add to navigation stack if it's a new URL
           addToNavStack(url);
           return;
         }
 
         switch (data?.type) {
-          case "schedule-notification": 
+          case "schedule-notification":
             try {
               await notificationService.sendNotification({
                 title: data.payload.title || "No Title",
@@ -159,163 +168,115 @@ const DynamicIframe = forwardRef<DynamicIframeHandle, DynamicIFrameProps>(
                 actions: data.payload.actions,
                 extra: data.payload.extra,
               });
-
-              postToIframe({type: 'notification-scheduled', id: data.payload.id});
-            } catch(err: any) {
-              postToIframe({
-                type: "notification-error",
-                error: err?.message || "Failed to schedule notification"
-              });
+              iframeRef.current?.contentWindow?.postMessage(
+                { type: 'notification-scheduled', id: data.payload.id },
+                origin || "*"
+              );
+            } catch (err: any) {
+              iframeRef.current?.contentWindow?.postMessage(
+                { type: "notification-error", error: err?.message || "Failed to schedule notification" },
+                origin || "*"
+              );
             }
             break;
 
-            case "cancel-notification": 
-              try {
-                await notificationService.cancelNotification(data.payload.id);
-                postToIframe({type: 'notification-canceled', id: data.payload.id});
-              } catch(err: any) {
-                  postToIframe({
-                    type: "notification-error",
-                    error: err?.message || "Failed to cancel notification",
-                  });
-              }
-              break;
+          case "cancel-notification":
+            try {
+              await notificationService.cancelNotification(data.payload.id);
+              iframeRef.current?.contentWindow?.postMessage(
+                { type: 'notification-canceled', id: data.payload.id },
+                origin || "*"
+              );
+            } catch (err: any) {
+              iframeRef.current?.contentWindow?.postMessage(
+                { type: "notification-error", error: err?.message || "Failed to cancel notification" },
+                origin || "*"
+              );
+            }
+            break;
 
-            case "get-pending-notifications":
-              try {
-                const pending = await notificationService.getPendingNotifications();
-                postToIframe({ type: "pending-notifications", data: pending });
-              } catch (err: any) {
-                postToIframe({
-                  type: "notification-error",
-                  error: err?.message || "Failed to fetch pending notifications",
-                });
-              }
-              break;
-
-            default: 
-              console.log("Unknown postMessage type: ", data);
+          case "get-pending-notifications":
+            try {
+              const pending = await notificationService.getPendingNotifications();
+              iframeRef.current?.contentWindow?.postMessage(
+                { type: "pending-notifications", data: pending },
+                origin || "*"
+              );
+            } catch (err: any) {
+              iframeRef.current?.contentWindow?.postMessage(
+                { type: "notification-error", error: err?.message || "Failed to fetch pending notifications" },
+                origin || "*"
+              );
+            }
+            break;
         }
-
-        //   // No need to navigate the iframe here since the message came from the iframe itself
-        //   // indicating it has already navigated
-        // } else {
-        //   console.log("Received message with no valid URL:", event.data);
-        // }
       };
 
       window.addEventListener('message', handleMessage);
-      // Removing message event listener
-      return () => {
-        window.removeEventListener('message', handleMessage);
-      };
+      return () => window.removeEventListener('message', handleMessage);
     }, [origin, addToNavStack]);
 
+    // Back button handling
     useEffect(() => {
-      // Create a variable to hold the listener handle
       let listenerHandle: any = null;
       
-      // Add the listener and store the handle when the Promise resolves
       CapacitorApp.addListener("backButton", () => {
-        console.log("Back button pressed, navStack length:", navStack.length);
-        // If we can navigate back, do so, otherwise exit the app
         if (navStack.length > 1) {
-          console.log("Navigating back within the app");
           navigateBack();
         } else {
-          console.log("Exiting app - at the beginning of navigation stack");
           CapacitorApp.exitApp();
         }
       }).then(handle => {
         listenerHandle = handle;
       });
       
-      // Cleanup function to remove the listener
       return () => {
         if (listenerHandle) {
-          console.log("Removing backButton event listener");
           listenerHandle.remove();
         }
       };
     }, [navStack, navigateBack]);
 
-    // Handle iframe navigation events - removed direct access to contentWindow.location.href
-    // which causes cross-origin security errors
-    const handleIframeNavigation = useCallback(() => {
-      // We no longer try to access iframe.contentWindow.location.href directly
-      // Instead, we rely on postMessage communication from the iframe
-      console.log("Iframe navigation handled via postMessage API");
-    }, []);
-    
-    // Function to handle link clicks inside the iframe
-    // Note: This function may not work with cross-origin iframes due to security restrictions
-    // But we keep it as a fallback for same-origin scenarios
-    const setupIframeLinkInterception = useCallback(() => {
-      try {
-        const iframe = iframeRef.current;
-        if (!iframe || !iframe.contentWindow) return;
-        
-        console.log("Attempting to set up link interception in iframe");
-        
-        // This will likely fail for cross-origin iframes, but we try anyway
-        // The iframe should use postMessage API to communicate navigation events
-        try {
-          if (iframe.contentDocument) {
-            console.log("Setting up link interception in iframe");
-            
-            // Try to add a script to the iframe to intercept link clicks
-            const script = iframe.contentDocument.createElement('script');
-            script.textContent = `
-              // Intercept all link clicks
-              document.addEventListener('click', function(e) {
-                if (e.target.tagName === 'A' || e.target.closest('a')) {
-                  const link = e.target.tagName === 'A' ? e.target : e.target.closest('a');
-                  const href = link.getAttribute('href');
-                  if (href && !href.startsWith('#') && !href.startsWith('javascript:')) {
-                    e.preventDefault();
-                    console.log('Link clicked:', href);
-                    window.parent.postMessage({ url: href }, '*');
-                  }
-                }
-              });
-            `;
-            
-            iframe.contentDocument.head.appendChild(script);
-          }
-        } catch (e) {
-          console.log("Could not access contentDocument due to security restrictions");
-        }
-      } catch (e) {
-        console.log("Could not set up link interception due to security restrictions:", e);
-      }
-    }, []);
+    // Loading timeout
+    useEffect(() => {
+      if (!app || !loading) return;
 
-    // Initial load of the iframe
-    const [isFirstLoad, setIsFirstLoad] = useState(true);
-    
-    return (
+      const timeoutId = setTimeout(() => {
+        setError(new Error("Loading timeout exceeded"));
+      }, app.errorHandling.timeoutDuration);
+
+      return () => clearTimeout(timeoutId);
+    }, [app, loading]);
+
+    if (!app) {
+      return null;
+    }
+
+    const shouldRender = app.loading.type === 'eager' || !loading;
+
+    return shouldRender ? (
       <iframe
         ref={iframeRef}
-        width={width}
-        height={height}
-        src={isFirstLoad ? initialUrl : undefined}
-        title={title}
+        src={navStack[navStack.length - 1]}
+        title={app.name}
+        sandbox={getSandboxAttributes(app)}
+        allow={getPermissionsPolicy(app)}
+        style={{
+          ...app.styles,
+          display: loading ? 'none' : 'block'
+        }}
         onLoad={() => {
-          console.log("Iframe loaded with URL:", navStack[navStack.length -1]);
-          
-          if (isFirstLoad) {
-            setIsFirstLoad(false);
-          }
-          
-          // Try to detect navigation within the iframe
-          setTimeout(handleIframeNavigation, 100);
-          
-          // Try to set up link interception
-          setTimeout(setupIframeLinkInterception, 500);
+          setLoading(false);
+          onLoad?.();
+        }}
+        onError={(e) => {
+          const error = new Error("Failed to load iframe content");
+          setError(error);
+          onError?.(error);
         }}
         {...rest}
       />
-    );
+    ) : null;
   }
 );
 
