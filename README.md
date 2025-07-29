@@ -10,7 +10,7 @@ This repository includes a test environment for the DynamicIframe component, whi
 1. Install dependencies for both the test iframe app and the Ionic app:
    ```
    cd test-iframe-app
-   npm run install-deps
+   node server.js
    cd ../ionic-app
    npm install
    ```
@@ -19,7 +19,7 @@ This repository includes a test environment for the DynamicIframe component, whi
 
    inside test-iframe-app
    ```
-   npm run start
+   node server.js
    ```
 
    inside ionic-app
