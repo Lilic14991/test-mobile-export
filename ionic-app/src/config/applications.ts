@@ -75,7 +75,7 @@ export const applications: Application[] = [
     devUrl: 'http://localhost:3001',
     prodUrl: '/apps/client-web/index.html',
     version: '1.0.0',
-    description: 'Main client web application',
+    description: 'IFramed application for testing',
     sandbox: {
       ...defaultSandboxOptions,
       allowPopups: true,
@@ -101,7 +101,7 @@ export const applications: Application[] = [
   {
     id: 'agency-web',
     name: 'Agency Web Application',
-    devUrl: 'http://localhost:3002',
+    devUrl: 'http://localhost:3007',
     prodUrl: '/apps/agency-web/index.html',
     version: '1.0.0',
     description: 'Agency management portal',
@@ -150,10 +150,10 @@ export const applications: Application[] = [
   {
     id: 'cookie-clicker',
     name: 'Cookie Clicker Game',
-    devUrl: 'http://localhost:3004',
+    devUrl: 'http://localhost:3002',
     prodUrl: '/apps/cookie-clicker/index.html',
     version: '1.0.0',
-    description: 'Simple cookie clicker game',
+    description: 'Pump clicker game',
     sandbox: {
       ...defaultSandboxOptions,
       allowScripts: true,
