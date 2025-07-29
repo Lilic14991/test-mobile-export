@@ -98,25 +98,32 @@ export const applications: Application[] = [
       border: 'none',
     },
   },
-  {
-    id: 'agency-web',
-    name: 'Agency Web Application',
-    devUrl: 'http://localhost:3007',
-    prodUrl: '/apps/agency-web/index.html',
+    {
+    id: 'cookie-clicker',
+    name: 'Cookie Clicker Game',
+    devUrl: 'http://localhost:3002',
+    prodUrl: '/apps/cookie-clicker/index.html',
     version: '1.0.0',
-    description: 'Agency management portal',
-    sandbox: defaultSandboxOptions,
-    permissions: defaultPermissions,
+    description: 'Pump clicker game',
+    sandbox: {
+      ...defaultSandboxOptions,
+      allowScripts: true,
+    },
+    permissions: {
+      ...defaultPermissions,
+      fullscreen: true,
+    },
     loading: {
       type: 'lazy',
-      threshold: 0.1,
+      threshold: 0.5,
     },
     errorHandling: defaultErrorHandling,
-    styles: {
-      width: '100%',
-      height: '100%',
-      border: 'none',
-    },
+  styles: {
+    width: '100%',
+    height: '100%',
+    border: 'none',
+    borderRadius: '4px',
+  },
   },
   {
     id: 'admin-web',
@@ -147,31 +154,25 @@ export const applications: Application[] = [
       border: 'none',
     },
   },
+
   {
-    id: 'cookie-clicker',
-    name: 'Cookie Clicker Game',
-    devUrl: 'http://localhost:3002',
-    prodUrl: '/apps/cookie-clicker/index.html',
+    id: 'agency-web',
+    name: 'Agency Web Application',
+    devUrl: 'http://localhost:3007',
+    prodUrl: '/apps/agency-web/index.html',
     version: '1.0.0',
-    description: 'Pump clicker game',
-    sandbox: {
-      ...defaultSandboxOptions,
-      allowScripts: true,
-    },
-    permissions: {
-      ...defaultPermissions,
-      fullscreen: true,
-    },
+    description: 'Agency management portal',
+    sandbox: defaultSandboxOptions,
+    permissions: defaultPermissions,
     loading: {
       type: 'lazy',
-      threshold: 0.5,
+      threshold: 0.1,
     },
     errorHandling: defaultErrorHandling,
     styles: {
       width: '100%',
-      height: '600px',
-      border: '1px solid #eee',
-      borderRadius: '4px',
+      height: '100%',
+      border: 'none',
     },
   },
 ];
@@ -180,8 +181,12 @@ export const getApplication = (id: string): Application | undefined => {
   return applications.find(app => app.id === id);
 };
 
+/**
+ * Get the current application based on the VITE_APP_ID environment variable
+ * @returns The current application configuration
+ */
 export const getCurrentApplication = (): Application => {
-  const appId = process.env.VITE_APP_ID || 'client-web';
+  const appId = import.meta.env.VITE_APP_ID || 'client-web';
   const app = getApplication(appId);
   
   if (!app) {
@@ -212,7 +217,27 @@ export const getPermissionsPolicy = (app: Application): string => {
   return policies;
 };
 
+import { isDevelopment, isNativePlatform } from './environment';
+
+/**
+ * Get the appropriate URL for the iframe based on the application and environment
+ * @param app The application configuration
+ * @returns The URL to use for the iframe
+ */
 export const getIframeUrl = (app: Application): string => {
-  const isDevelopment = process.env.NODE_ENV === 'development';
-  return isDevelopment ? app.devUrl : app.prodUrl;
+  // Use development URL in development mode, production URL in production mode
+  const baseUrl = isDevelopment() ? app.devUrl : app.prodUrl;
+  
+  // If we're on a native platform and the URL is relative, we need to handle it differently
+  if (isNativePlatform() && !baseUrl.startsWith('http')) {
+    // For relative URLs in native platforms, we need to use the full URL from the app's server
+    // This assumes the app is served from a domain that's accessible from the native app
+    const protocol = isDevelopment() ? 'http' : 'https';
+    const host = isDevelopment() ? 'localhost' : window.location.hostname;
+    const port = isDevelopment() ? (app.devUrl.includes(':') ? app.devUrl.split(':')[2].split('/')[0] : '80') : '';
+    
+    return `${protocol}://${host}${port ? `:${port}` : ''}${baseUrl.startsWith('/') ? baseUrl : `/${baseUrl}`}`;
+  }
+  
+  return baseUrl;
 };
