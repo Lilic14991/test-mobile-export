@@ -1,47 +1,99 @@
+/**
+ * Interface for iframe sandbox options
+ * Controls what features are available to the iframe content
+ */
 export interface IframeSandboxOptions {
+  /** Allow form submission */
   allowForms?: boolean;
+  /** Allow opening popup windows */
   allowPopups?: boolean;
+  /** Allow JavaScript execution */
   allowScripts?: boolean;
+  /** Allow same origin requests */
   allowSameOrigin?: boolean;
+  /** Allow navigation of the top-level browsing context */
   allowTopNavigation?: boolean;
 }
 
+/**
+ * Interface for iframe permissions policy
+ * Controls access to browser features
+ */
 export interface IframePermissionsPolicy {
+  /** Allow camera access */
   camera?: boolean;
+  /** Allow microphone access */
   microphone?: boolean;
+  /** Allow geolocation access */
   geolocation?: boolean;
+  /** Allow fullscreen mode */
   fullscreen?: boolean;
+  /** Allow payment API access */
   payment?: boolean;
 }
 
+/**
+ * Interface for iframe loading strategy
+ * Controls how and when iframes are loaded
+ */
 export interface LoadingStrategy {
+  /** Loading type: eager (immediate) or lazy (deferred) */
   type: 'eager' | 'lazy';
-  threshold?: number; // Intersection observer threshold for lazy loading
+  /** Intersection observer threshold for lazy loading (0.0 to 1.0) */
+  threshold?: number;
 }
 
+/**
+ * Interface for error handling configuration
+ * Controls how errors are handled when loading iframe content
+ */
 export interface ErrorHandling {
+  /** URL to display if the iframe fails to load */
   fallbackUrl?: string;
+  /** Number of retry attempts before giving up */
   retryAttempts: number;
-  retryDelay: number; // in milliseconds
-  timeoutDuration: number; // in milliseconds
+  /** Delay between retry attempts in milliseconds */
+  retryDelay: number;
+  /** Maximum time to wait for iframe to load in milliseconds */
+  timeoutDuration: number;
 }
 
+/**
+ * Interface for application configuration
+ * Defines all properties needed to configure an iframe application
+ */
 export interface Application {
+  /** Unique identifier for the application */
   id: string;
+  /** Display name of the application */
   name: string;
+  /** URL to use in development environment */
   devUrl: string;
+  /** URL to use in production environment */
   prodUrl: string;
+  /** Icon path for the application */
   icon?: string;
+  /** Version string */
   version?: string;
+  /** Description of the application */
   description?: string;
+  /** Sandbox configuration for the iframe */
   sandbox: IframeSandboxOptions;
+  /** Permissions policy for the iframe */
   permissions: IframePermissionsPolicy;
+  /** Loading strategy configuration */
   loading: LoadingStrategy;
+  /** Error handling configuration */
   errorHandling: ErrorHandling;
+  /** CSS styles for the iframe */
   styles?: {
+    /** Width of the iframe */
     width?: string;
+    /** Height of the iframe */
     height?: string;
+    /** Border radius of the iframe */
     borderRadius?: string;
+    /** Border style of the iframe */
     border?: string;
   };
 }
@@ -68,6 +120,9 @@ export const defaultErrorHandling: ErrorHandling = {
   timeoutDuration: 10000,
 };
 
+/**
+ * List of available applications
+ */
 export const applications: Application[] = [
   {
     id: 'client-web',
@@ -98,7 +153,7 @@ export const applications: Application[] = [
       border: 'none',
     },
   },
-    {
+  {
     id: 'cookie-clicker',
     name: 'Cookie Clicker Game',
     devUrl: 'http://localhost:3002',
@@ -118,12 +173,41 @@ export const applications: Application[] = [
       threshold: 0.5,
     },
     errorHandling: defaultErrorHandling,
-  styles: {
-    width: '100%',
-    height: '100%',
-    border: 'none',
-    borderRadius: '4px',
+    styles: {
+      width: '100%',
+      height: '100%',
+      border: 'none',
+      borderRadius: '4px',
+    },
   },
+   {
+    id: 'manowar-yt',
+    name: 'Manowar - Sleipnir',
+    devUrl: 'https://www.youtube.com/embed/w3n2lr0yfKs',
+    prodUrl: '/apps/admin-web/index.html',
+    version: '1.0.0',
+    description: 'Administrative dashboard',
+    sandbox: {
+      ...defaultSandboxOptions,
+      allowPopups: true,
+      allowTopNavigation: true,
+    },
+    permissions: {
+      ...defaultPermissions,
+      fullscreen: true,
+    },
+    loading: {
+      type: 'eager',
+    },
+    errorHandling: {
+      ...defaultErrorHandling,
+      retryAttempts: 5,
+    },
+    styles: {
+      width: '100%',
+      height: '100%',
+      border: 'none',
+    },
   },
   {
     id: 'admin-web',
@@ -154,7 +238,6 @@ export const applications: Application[] = [
       border: 'none',
     },
   },
-
   {
     id: 'agency-web',
     name: 'Agency Web Application',
@@ -225,19 +308,33 @@ import { isDevelopment, isNativePlatform } from './environment';
  * @returns The URL to use for the iframe
  */
 export const getIframeUrl = (app: Application): string => {
-  // Use development URL in development mode, production URL in production mode
+  // Select base URL based on environment
   const baseUrl = isDevelopment() ? app.devUrl : app.prodUrl;
   
-  // If we're on a native platform and the URL is relative, we need to handle it differently
-  if (isNativePlatform() && !baseUrl.startsWith('http')) {
-    // For relative URLs in native platforms, we need to use the full URL from the app's server
-    // This assumes the app is served from a domain that's accessible from the native app
-    const protocol = isDevelopment() ? 'http' : 'https';
-    const host = isDevelopment() ? 'localhost' : window.location.hostname;
-    const port = isDevelopment() ? (app.devUrl.includes(':') ? app.devUrl.split(':')[2].split('/')[0] : '80') : '';
-    
-    return `${protocol}://${host}${port ? `:${port}` : ''}${baseUrl.startsWith('/') ? baseUrl : `/${baseUrl}`}`;
+  // Handle absolute URLs directly
+  if (baseUrl.startsWith('http')) {
+    return baseUrl;
   }
   
+  // Handle relative URLs
+  if (isNativePlatform()) {
+    // For native platforms, we need to construct a full URL
+    const protocol = isDevelopment() ? 'http' : 'https';
+    const host = isDevelopment() ? 'localhost' : window.location.hostname;
+    
+    // Extract port from dev URL if available
+    let port = '';
+    if (isDevelopment() && app.devUrl.includes(':')) {
+      const portMatch = app.devUrl.match(/:(\d+)/);
+      port = portMatch ? `:${portMatch[1]}` : '';
+    }
+    
+    // Ensure path starts with a slash
+    const path = baseUrl.startsWith('/') ? baseUrl : `/${baseUrl}`;
+    
+    return `${protocol}://${host}${port}${path}`;
+  }
+  
+  // For web platforms with relative URLs, return as is
   return baseUrl;
 };

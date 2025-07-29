@@ -7,43 +7,27 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test.e2e": "cypress run",
-    "test.unit": "vitest",
+    "test": "vitest",
+    "test:e2e": "cypress run",
     "lint": "eslint",
     
     "cap:sync": "npx cap sync",
     "cap:open:android": "npx cap open android",
     "cap:open:ios": "npx cap open ios",
 
-    "build:dev": "vite build --mode development",
-    "build:prod": "vite build --mode production",
+    "dev:web": "vite",
+    "stage:web": "tsc && vite build --mode staging",
+    "prod:web": "tsc && vite build --mode production",
     
-    "android:dev": "npm run build:dev && npm run cap:sync && npm run cap:open:android",
-    "android:live": "ionic cap run android --livereload --external --host=0.0.0.0",
-    "android:prod": "ionic build && ionic cap sync android && ionic cap open android",
-    "ios:dev": "npm run build:dev && npm run cap:sync && npm run cap:open:ios",
-    "ios:live": "ionic cap run ios --livereload --external --host=0.0.0.0",
-    "ios:prod": "ionic build && ionic cap sync ios && ionic cap open ios",
-
-    "dev:apk:client-web": "cross-env VITE_APP_ID=client-web npm run android:live",
-    "dev:apk:agency-web": "cross-env VITE_APP_ID=agency-web npm run android:live",
-    "dev:apk:admin-web": "cross-env VITE_APP_ID=admin-web npm run android:live",
-    "dev:apk:cookie-clicker": "cross-env VITE_APP_ID=cookie-clicker npm run android:live",
-
-    "dev:ios:client-web": "cross-env VITE_APP_ID=client-web npm run ios:live",
-    "dev:ios:agency-web": "cross-env VITE_APP_ID=agency-web npm run ios:live",
-    "dev:ios:admin-web": "cross-env VITE_APP_ID=admin-web npm run ios:live",
-    "dev:ios:cookie-clicker": "cross-env VITE_APP_ID=cookie-clicker npm run ios:live",
-
-    "build:apk:client-web": "cross-env VITE_APP_ID=client-web npm run android:prod",
-    "build:apk:agency-web": "cross-env VITE_APP_ID=agency-web npm run android:prod",
-    "build:apk:admin-web": "cross-env VITE_APP_ID=admin-web npm run android:prod",
-    "build:apk:cookie-clicker": "cross-env VITE_APP_ID=cookie-clicker npm run android:prod",
-
-    "build:ios:client-web": "cross-env VITE_APP_ID=client-web npm run ios:prod",
-    "build:ios:agency-web": "cross-env VITE_APP_ID=agency-web npm run ios:prod",
-    "build:ios:admin-web": "cross-env VITE_APP_ID=admin-web npm run ios:prod",
-    "build:ios:cookie-clicker": "cross-env VITE_APP_ID=cookie-clicker npm run ios:prod"
+    "dev:android": "ionic cap run android --livereload --external --host=0.0.0.0",
+    "stage:android": "tsc && vite build --mode staging && npx cap sync android && npx cap open android",
+    "prod:android": "tsc && vite build --mode production && npx cap sync android && npx cap open android",
+    
+    "dev:ios": "ionic cap run ios --livereload --external --host=0.0.0.0",
+    "stage:ios": "tsc && vite build --mode staging && npx cap sync ios && npx cap open ios",
+    "prod:ios": "tsc && vite build --mode production && npx cap sync ios && npx cap open ios",
+    
+    "build:all": "build-and-copy.bat"
   },
   "dependencies": {
     "@capacitor/android": "7.2.0",
