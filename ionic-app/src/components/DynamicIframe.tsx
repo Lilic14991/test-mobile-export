@@ -1,8 +1,12 @@
 import React, { forwardRef, useEffect, useRef, useState, useCallback } from "react";
 import { App as CapacitorApp } from "@capacitor/app";
 import notificationService from "../services/NotificationService";
-import { getApplication } from "../config/applications";
-import { getIframeUrl } from "../config/environment";
+import { 
+  getApplication, 
+  getIframeUrl, 
+  getSandboxAttributes, 
+  getPermissionsPolicy 
+} from "../config/applications";
 
 interface DynamicIFrameProps {
   appId: string;
@@ -27,11 +31,10 @@ const DynamicIframe = forwardRef<DynamicIframeHandle, DynamicIFrameProps>(
     // Initialize application configuration
     useEffect(() => {
       const currentApp = getApplication(appId);
-      console.log(currentApp)
       if (currentApp) {
         setApp(currentApp);
-        // Get the URL for the iframe
-        const url = getIframeUrl();
+        // Get the URL for the iframe based on the application configuration
+        const url = getIframeUrl(currentApp);
         setNavStack([url]);
         lastUrlRef.current = url;
       } else {
@@ -197,17 +200,27 @@ const DynamicIframe = forwardRef<DynamicIframeHandle, DynamicIFrameProps>(
       return null;
     }
 
+    // Get sandbox and permissions attributes
+    const sandboxAttributes = getSandboxAttributes(app);
+    const permissionsPolicy = getPermissionsPolicy(app);
+    
+    // Apply custom styles from app configuration
+    const iframeStyles = {
+      width: app.styles?.width || '100%',
+      height: app.styles?.height || '100%',
+      border: app.styles?.border || 'none',
+      borderRadius: app.styles?.borderRadius || '0',
+      display: loading ? 'none' : 'block'
+    };
+
     return (
       <iframe
         ref={iframeRef}
         src={navStack[navStack.length - 1]}
         title={app.name || "Embedded Content"}
-        style={{
-          width: '100%',
-          height: '100%',
-          border: 'none',
-          display: loading ? 'none' : 'block'
-        }}
+        style={iframeStyles}
+        sandbox={sandboxAttributes}
+        allow={permissionsPolicy}
         onLoad={() => {
           setLoading(false);
           if (onLoad) onLoad();
