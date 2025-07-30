@@ -1,16 +1,24 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'io.ionic.starter',
-  appName: 'ionic-app',
+  appId: 'io.ionic.pumpclicker',
+  appName: 'Pump Clicker',
   webDir: 'dist',
   server: {
-    allowNavigation: ['*'],
+    allowNavigation: [
+      '*',
+      'localhost:3002'
+    ],
   },
   plugins: {
     Browser: {
       clearCaches: true
     }
+  },
+  android: {
+    allowMixedContent: true,
+    captureInput: true,
+    webContentsDebuggingEnabled: true
   }
 };
 

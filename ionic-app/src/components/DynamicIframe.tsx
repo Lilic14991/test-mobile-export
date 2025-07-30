@@ -104,12 +104,17 @@ const DynamicIframe = forwardRef<DynamicIframeHandle, DynamicIFrameProps>(
         
         // Get the URL for the iframe based on the application configuration
         const url = getIframeUrl(currentApp);
+        
+        // Log the URL for debugging
+        console.log(`[DynamicIframe] URL for ${currentApp.name}: ${url}`);
+        
         setNavStack([url]);
         lastUrlRef.current = url;
         
         console.log(`[DynamicIframe] Initialized app: ${currentApp.name} (${appId})`);
       } catch (err) {
         const initError = err instanceof Error ? err : new Error(`Failed to initialize iframe: ${err}`);
+        console.error("[DynamicIframe] Initialization error:", initError);
         setError(initError);
         if (onError) {
           onError(initError);
@@ -363,33 +368,72 @@ const DynamicIframe = forwardRef<DynamicIframeHandle, DynamicIFrameProps>(
       height: app.styles?.height || '100%',
       border: app.styles?.border || 'none',
       borderRadius: app.styles?.borderRadius || '0',
-      display: loading ? 'none' : 'block'
+      display: loading ? 'none' : 'block',
+      backgroundColor: '#ffffff' // Add background color for visibility
     };
 
     // Get the current URL from the navigation stack
     const currentUrl = navStack.length > 0 ? navStack[navStack.length - 1] : '';
 
     return (
-      <iframe
-        ref={iframeRef}
-        src={currentUrl}
-        title={app.name || "Embedded Content"}
-        style={iframeStyles}
-        sandbox={sandboxAttributes}
-        allow={permissionsPolicy}
-        onLoad={() => {
-          setLoading(false);
-          console.log(`[DynamicIframe] Content loaded: ${app.name}`);
-          if (onLoad) onLoad();
-        }}
-        onError={(e) => {
-          const loadError = new Error(`Failed to load iframe content for ${app.name}`);
-          setError(loadError);
-          console.error("[DynamicIframe] Load error:", loadError);
-          if (onError) onError(loadError);
-        }}
-        {...rest}
-      />
+      <div style={{ 
+        width: '100%', 
+        height: '100%', 
+        display: 'flex', 
+        flexDirection: 'column',
+        border: '1px solid #ddd', // Add border for debugging
+        position: 'relative'
+      }}>
+        {loading && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: '#f5f5f5',
+            zIndex: 10
+          }}>
+            Loading {app.name}...
+          </div>
+        )}
+        
+        <iframe
+          ref={iframeRef}
+          src={currentUrl}
+          title={app.name || "Embedded Content"}
+          style={iframeStyles}
+          sandbox={sandboxAttributes}
+          allow={permissionsPolicy}
+          onLoad={() => {
+            setLoading(false);
+            console.log(`[DynamicIframe] Content loaded: ${app.name}`);
+            if (onLoad) onLoad();
+          }}
+          onError={(e) => {
+            const loadError = new Error(`Failed to load iframe content for ${app.name}`);
+            setError(loadError);
+            console.error("[DynamicIframe] Load error:", e);
+            if (onError) onError(loadError);
+          }}
+          {...rest}
+        />
+        
+        {error && (
+          <div style={{
+            padding: '10px',
+            backgroundColor: '#ffebee',
+            color: '#c62828',
+            marginTop: '10px',
+            borderRadius: '4px'
+          }}>
+            Error: {error.message}
+          </div>
+        )}
+      </div>
     );
   }
 );

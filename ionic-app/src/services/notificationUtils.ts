@@ -154,26 +154,26 @@ export const scheduleCountdown = async (
     
     // Schedule countdown notifications
     for (let i = countFrom; i > 0; i--) {
-      const scheduledTime = new Date(Date.now() + intervalSeconds * (countFrom - i + 1) * 1000);
+      const delayInSeconds = intervalSeconds * (countFrom - i + 1);
       
       scheduledNotifications.push(
         notificationService.sendNotification({
           title: `${title} - ${i}`,
           body: `${i} ${i === 1 ? 'minute' : 'minutes'} remaining`,
           id: baseId + i,
-          scheduledDateTime: scheduledTime
+          delayInSeconds
         })
       );
     }
     
     // Schedule the final notification
-    const finalTime = new Date(Date.now() + intervalSeconds * (countFrom + 1) * 1000);
+    const finalDelayInSeconds = intervalSeconds * (countFrom + 1);
     scheduledNotifications.push(
       notificationService.sendNotification({
         title,
         body: finalMessage,
         id: baseId,
-        scheduledDateTime: finalTime
+        delayInSeconds: finalDelayInSeconds
       })
     );
     

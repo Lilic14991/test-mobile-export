@@ -1,89 +1,61 @@
 @echo off
-echo ===================================
+echo ===================================================
 echo Building All Applications
-echo ===================================
+echo ===================================================
 
-:: Create output directory
-set OUTPUT_DIR=dist-all
-if not exist %OUTPUT_DIR% mkdir %OUTPUT_DIR%
-
-:: Create apps directory
-set APPS_DIR=%OUTPUT_DIR%\apps
-if not exist %APPS_DIR% mkdir %APPS_DIR%
-
-:: Build client-web app
 echo.
-echo Building client-web application...
-call npm run build:web:client-web
-if %ERRORLEVEL% neq 0 (
-  echo Error building client-web application
-  exit /b %ERRORLEVEL%
-)
-if exist dist-client-web (
-  echo Copying client-web build to %APPS_DIR%\client-web
-  if not exist %APPS_DIR%\client-web mkdir %APPS_DIR%\client-web
-  xcopy /E /I /Y dist-client-web\* %APPS_DIR%\client-web
-)
-
-:: Build agency-web app
-echo.
-echo Building agency-web application...
-call npm run build:web:agency-web
-if %ERRORLEVEL% neq 0 (
-  echo Error building agency-web application
-  exit /b %ERRORLEVEL%
-)
-if exist dist-agency-web (
-  echo Copying agency-web build to %APPS_DIR%\agency-web
-  if not exist %APPS_DIR%\agency-web mkdir %APPS_DIR%\agency-web
-  xcopy /E /I /Y dist-agency-web\* %APPS_DIR%\agency-web
-)
-
-:: Build admin-web app
-echo.
-echo Building admin-web application...
-call npm run build:web:admin-web
-if %ERRORLEVEL% neq 0 (
-  echo Error building admin-web application
-  exit /b %ERRORLEVEL%
-)
-if exist dist-admin-web (
-  echo Copying admin-web build to %APPS_DIR%\admin-web
-  if not exist %APPS_DIR%\admin-web mkdir %APPS_DIR%\admin-web
-  xcopy /E /I /Y dist-admin-web\* %APPS_DIR%\admin-web
-)
-
-:: Build cookie-clicker app
-echo.
-echo Building cookie-clicker application...
-call npm run build:web:cookie-clicker
-if %ERRORLEVEL% neq 0 (
-  echo Error building cookie-clicker application
-  exit /b %ERRORLEVEL%
-)
-if exist dist-cookie-clicker (
-  echo Copying cookie-clicker build to %APPS_DIR%\cookie-clicker
-  if not exist %APPS_DIR%\cookie-clicker mkdir %APPS_DIR%\cookie-clicker
-  xcopy /E /I /Y dist-cookie-clicker\* %APPS_DIR%\cookie-clicker
-)
-
-:: Build multi-app viewer
-echo.
-echo Building multi-app viewer...
-call npm run build:web:multi-app
-if %ERRORLEVEL% neq 0 (
-  echo Error building multi-app viewer
-  exit /b %ERRORLEVEL%
-)
-if exist dist-multi-app (
-  echo Copying multi-app viewer build to %OUTPUT_DIR%
-  xcopy /E /I /Y dist-multi-app\* %OUTPUT_DIR%
+echo Step 1: Cleaning up previous build artifacts...
+if exist "dist" (
+    rmdir /S /Q "dist"
+    echo Removed previous dist directory
 )
 
 echo.
-echo ===================================
-echo All applications built successfully!
-echo Output directory: %CD%\%OUTPUT_DIR%
-echo ===================================
+echo Step 2: Building main Ionic app...
+call npm run build 
 
-exit /b 0
+echo.
+echo Step 3: Building client-web app...
+call npm run build -- --mode production --env VITE_APP_ID=client-web --skipTests
+
+echo.
+echo Step 4: Building pump-clicker app...
+call npm run build -- --mode production --env VITE_APP_ID=pump-clicker --skipTests
+
+echo.
+echo Step 5: Creating apps directory structure in dist...
+if not exist "dist\apps" (
+    mkdir "dist\apps"
+    echo Created apps directory
+)
+
+echo.
+echo Step 6: Copying client-web app to dist/apps...
+if not exist "dist\apps\client-web" (
+    mkdir "dist\apps\client-web"
+)
+xcopy /E /I /Y "dist\*" "dist\apps\client-web\"
+echo Copied client-web app to dist/apps/client-web
+
+echo.
+echo Step 7: Copying pump-clicker app to dist/apps...
+if not exist "dist\apps\pump-clicker" (
+    mkdir "dist\apps\pump-clicker"
+)
+xcopy /E /I /Y "dist\*" "dist\apps\pump-clicker\"
+echo Copied pump-clicker app to dist/apps/pump-clicker
+
+echo.
+echo Step 8: Syncing Capacitor...
+call npx cap sync android
+
+echo.
+echo Build completed!
+echo.
+echo To build the APK, run:
+echo cd android
+echo gradlew assembleDebug
+echo.
+echo Or open Android Studio:
+echo npx cap open android
+echo ===================================================

@@ -128,7 +128,7 @@ export const applications: Application[] = [
     id: 'client-web',
     name: 'Client Web Application',
     devUrl: 'http://localhost:3001',
-    prodUrl: '/apps/client-web/index.html',
+    prodUrl: 'apps/client-web/index.html',
     version: '1.0.0',
     description: 'IFramed application for testing',
     sandbox: {
@@ -154,30 +154,36 @@ export const applications: Application[] = [
     },
   },
   {
-    id: 'cookie-clicker',
-    name: 'Cookie Clicker Game',
-    devUrl: 'http://localhost:3002',
-    prodUrl: '/apps/cookie-clicker/index.html',
+    id: 'pump-clicker',
+    name: 'Pumping Clicker Game',
+    devUrl: 'http://localhost:3002/',
+    prodUrl: 'apps/pump-clicker/index.html',
     version: '1.0.0',
-    description: 'Pump clicker game',
+    description: 'Popular pump clicker game',
     sandbox: {
       ...defaultSandboxOptions,
       allowScripts: true,
+      allowPopups: true,
+      allowSameOrigin: true,
+      allowTopNavigation: true,
     },
     permissions: {
       ...defaultPermissions,
       fullscreen: true,
     },
     loading: {
-      type: 'lazy',
-      threshold: 0.5,
+      type: 'eager',
     },
-    errorHandling: defaultErrorHandling,
+    errorHandling: {
+      ...defaultErrorHandling,
+      retryAttempts: 5,
+      timeoutDuration: 15000,
+    },
     styles: {
       width: '100%',
       height: '100%',
       border: 'none',
-      borderRadius: '4px',
+      borderRadius: '0',
     },
   },
    {
@@ -311,8 +317,34 @@ export const getIframeUrl = (app: Application): string => {
   // Select base URL based on environment
   const baseUrl = isDevelopment() ? app.devUrl : app.prodUrl;
   
+  console.log(`[getIframeUrl] App: ${app.name}, isDevelopment: ${isDevelopment()}, isNativePlatform: ${isNativePlatform()}`);
+  console.log(`[getIframeUrl] Base URL: ${baseUrl}`);
+  
   // Handle absolute URLs directly
   if (baseUrl.startsWith('http')) {
+    // For native platforms, we need special handling of localhost URLs
+    if (isNativePlatform()) {
+      // If we're on a native platform and the URL is localhost, we need to use the device's IP
+      if (baseUrl.includes('localhost')) {
+        // For emulator, 10.0.2.2 points to the host machine's localhost
+        const emulatorUrl = baseUrl.replace('localhost', '10.0.2.2');
+        console.log(`[getIframeUrl] Using emulator URL: ${emulatorUrl}`);
+        return emulatorUrl;
+      }
+      
+      // Check if the URL contains an IP address that might be causing issues
+      if (baseUrl.includes('192.168.1.')) {
+        console.log(`[getIframeUrl] Warning: URL contains a specific IP address: ${baseUrl}`);
+        console.log(`[getIframeUrl] This might cause issues on different networks`);
+        
+        // Try to use 10.0.2.2 for emulators
+        if (baseUrl.includes('192.168.1.109')) {
+          const fixedUrl = baseUrl.replace('192.168.1.109', '10.0.2.2');
+          console.log(`[getIframeUrl] Replacing IP with emulator-friendly address: ${fixedUrl}`);
+          return fixedUrl;
+        }
+      }
+    }
     return baseUrl;
   }
   
@@ -320,7 +352,9 @@ export const getIframeUrl = (app: Application): string => {
   if (isNativePlatform()) {
     // For native platforms, we need to construct a full URL
     const protocol = isDevelopment() ? 'http' : 'https';
-    const host = isDevelopment() ? 'localhost' : window.location.hostname;
+    
+    // Use 10.0.2.2 for emulators instead of localhost
+    const host = isDevelopment() ? '10.0.2.2' : window.location.hostname;
     
     // Extract port from dev URL if available
     let port = '';
@@ -332,7 +366,9 @@ export const getIframeUrl = (app: Application): string => {
     // Ensure path starts with a slash
     const path = baseUrl.startsWith('/') ? baseUrl : `/${baseUrl}`;
     
-    return `${protocol}://${host}${port}${path}`;
+    const fullUrl = `${protocol}://${host}${port}${path}`;
+    console.log(`[getIframeUrl] Constructed URL: ${fullUrl}`);
+    return fullUrl;
   }
   
   // For web platforms with relative URLs, return as is
