@@ -43,8 +43,8 @@ export default defineConfig(({ command, mode }) => {
     
     // Build configuration
     build: {
-      // Output directory based on command (serve vs build) and app ID
-      outDir: command === 'serve' ? 'dist' : `dist-${appId}`,
+      // Output directory - always use dist
+      outDir: 'dist',
       emptyOutDir: true,
       
       // Rollup-specific options
@@ -56,10 +56,17 @@ export default defineConfig(({ command, mode }) => {
         
         // Output chunking strategy for better caching and performance
         output: {
-          manualChunks: {
-            // Group common dependencies into separate chunks
-            vendor: ['react', 'react-dom', 'react-router-dom', '@ionic/react'],
-            ionic: ['@ionic/react', '@ionic/react-router', 'ionicons'],
+          manualChunks: (id) => {
+            // Group dependencies into appropriate chunks
+            if (id.includes('node_modules')) {
+              if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
+                return 'vendor-react';
+              }
+              if (id.includes('@ionic/react') || id.includes('@ionic/react-router') || id.includes('ionicons')) {
+                return 'vendor-ionic';
+              }
+              return 'vendor'; // all other node_modules
+            }
           }
         }
       }

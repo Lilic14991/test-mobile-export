@@ -10,7 +10,6 @@
 
 # production
 /dist
-/dist-all
 
 # misc
 .DS_Store
@@ -23,6 +22,7 @@
 /.vscode/*
 /.vscode/extensions.json
 .idea
+.env.development
 
 
 npm-debug.log*

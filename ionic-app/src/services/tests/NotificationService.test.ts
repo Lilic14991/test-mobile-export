@@ -62,13 +62,18 @@ describe('NotificationService', () => {
     expect(result).toEqual({ display: 'granted' });
   });
 
-  it('should schedule a basic notification', async () => {
+  it('should send a basic notification', async () => {
     const title = 'Test Notification';
     const body = 'This is a test notification';
     const id = 123;
     const delayInSeconds = 5;
     
-    await notificationService.scheduleNotification(title, body, id, delayInSeconds);
+    await notificationService.sendNotification({
+      title,
+      body,
+      id,
+      delayInSeconds
+    });
     
     expect(LocalNotifications.schedule).toHaveBeenCalledTimes(1);
     expect(LocalNotifications.schedule).toHaveBeenCalledWith({
@@ -83,13 +88,18 @@ describe('NotificationService', () => {
     });
   });
 
-  it('should schedule a notification at a specific time', async () => {
+  it('should send a notification at a specific time', async () => {
     const title = 'Scheduled Notification';
     const body = 'This is a scheduled notification';
     const scheduledTime = new Date();
     const id = 456;
     
-    await notificationService.scheduleNotificationAt(title, body, scheduledTime, id);
+    await notificationService.sendNotification({
+      title,
+      body,
+      id,
+      scheduledDateTime: scheduledTime
+    });
     
     expect(LocalNotifications.schedule).toHaveBeenCalledTimes(1);
     expect(LocalNotifications.schedule).toHaveBeenCalledWith({
@@ -98,19 +108,24 @@ describe('NotificationService', () => {
           title,
           body,
           id,
-          schedule: { at: scheduledTime }
+          schedule: expect.objectContaining({ at: scheduledTime })
         })
       ]
     });
   });
 
-  it('should schedule a repeating notification', async () => {
+  it('should send a repeating notification', async () => {
     const title = 'Repeating Notification';
     const body = 'This is a repeating notification';
-    const interval = 3600; // 1 hour
     const id = 789;
     
-    await notificationService.scheduleRepeatingNotification(title, body, interval, id);
+    await notificationService.sendNotification({
+      title,
+      body,
+      id,
+      repeats: true,
+      every: 'hour'
+    });
     
     expect(LocalNotifications.schedule).toHaveBeenCalledTimes(1);
     expect(LocalNotifications.schedule).toHaveBeenCalledWith({
@@ -128,7 +143,7 @@ describe('NotificationService', () => {
     });
   });
 
-  it('should schedule a notification with actions', async () => {
+  it('should send a notification with actions', async () => {
     const title = 'Action Notification';
     const body = 'This notification has actions';
     const actions = [
@@ -137,7 +152,12 @@ describe('NotificationService', () => {
     ];
     const id = 101;
     
-    await notificationService.scheduleNotificationWithActions(title, body, actions, id);
+    await notificationService.sendNotification({
+      title,
+      body,
+      id,
+      actions
+    });
     
     // Verify that action types were registered
     expect(LocalNotifications.registerActionTypes).toHaveBeenCalledTimes(1);
@@ -164,13 +184,18 @@ describe('NotificationService', () => {
     });
   });
 
-  it('should schedule a notification with extra data', async () => {
+  it('should send a notification with extra data', async () => {
     const title = 'Data Notification';
     const body = 'This notification has extra data';
     const extraData = { userId: 123, type: 'reminder' };
     const id = 202;
     
-    await notificationService.scheduleNotificationWithData(title, body, extraData, id);
+    await notificationService.sendNotification({
+      title,
+      body,
+      id,
+      extra: extraData
+    });
     
     expect(LocalNotifications.schedule).toHaveBeenCalledTimes(1);
     expect(LocalNotifications.schedule).toHaveBeenCalledWith({

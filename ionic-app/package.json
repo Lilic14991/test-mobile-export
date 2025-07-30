@@ -27,7 +27,7 @@
     "stage:ios": "tsc && vite build --mode staging && npx cap sync ios && npx cap open ios",
     "prod:ios": "tsc && vite build --mode production && npx cap sync ios && npx cap open ios",
     
-    "build:all": "build-and-copy.bat"
+    "build:all-apps": "build-all-apps.bat"
   },
   "dependencies": {
     "@capacitor/android": "7.2.0",

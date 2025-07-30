@@ -10,9 +10,10 @@ import {
   setupIonicReact,
 } from "@ionic/react";
 import { IonReactRouter } from "@ionic/react-router";
-import { card, beer } from "ionicons/icons";
+import { card, beer, fitness } from "ionicons/icons";
 import Tab1 from "./pages/Tab1";
 import IframeTest from "./pages/IframeTest";
+import PumpClickerApp from "./pages/PumpClickerApp";
 import { useEffect } from "react";
 import { notificationService } from "./services";
 
@@ -34,16 +35,8 @@ import "@ionic/react/css/display.css";
 
 /**
  * Ionic Dark Mode
- * -----------------------------------------------------
- * For more info, please see:
- * https://ionicframework.com/docs/theming/dark-mode
  */
-
-/* import '@ionic/react/css/palettes/dark.always.css'; */
-/* import '@ionic/react/css/palettes/dark.class.css'; */
 import "@ionic/react/css/palettes/dark.system.css";
-
-// import OneSignal from "onesignal-cordova-plugin";
 
 /* Theme variables */
 import "./theme/variables.css";
@@ -77,8 +70,11 @@ const App: React.FC = () => {
             <Route path="/iframe-test">
               <IframeTest />
             </Route>
+            <Route path="/pump-clicker">
+              <PumpClickerApp />
+            </Route>
             <Route exact path="/">
-              <Redirect to="/tab1" />
+              <Redirect to="/pump-clicker" />
             </Route>
           </IonRouterOutlet>
           <IonTabBar slot="bottom">
@@ -89,6 +85,10 @@ const App: React.FC = () => {
             <IonTabButton tab="iframe-test" href="/iframe-test">
               <IonIcon aria-hidden="true" icon={beer} />
               <IonLabel>Iframe Test</IonLabel>
+            </IonTabButton>
+            <IonTabButton tab="pump-clicker" href="/pump-clicker">
+              <IonIcon aria-hidden="true" icon={fitness} />
+              <IonLabel>Pump Clicker</IonLabel>
             </IonTabButton>
           </IonTabBar>
         </IonTabs>

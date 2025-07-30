@@ -122,15 +122,28 @@ const IframeTest: React.FC = () => {
           height: 'calc(100vh - 220px)',
           padding: '0 16px 16px 16px',
           display: 'flex',
-          flexDirection: 'column'
+          flexDirection: 'column',
+          border: '1px solid #e0e0e0', // Add border for visibility
+          backgroundColor: '#f9f9f9', // Add background color
+          position: 'relative' // For absolute positioning of children
         }}>
           {selectedApp && (
-            <DynamicIframe
-              ref={iframeRef}
-              appId={selectedAppId}
-              onError={handleError}
-              onLoad={() => console.log(`${selectedApp.name} loaded successfully`)}
-            />
+            <>
+              <div style={{ padding: '8px', backgroundColor: '#e3f2fd', borderBottom: '1px solid #bbdefb' }}>
+                Loading: {selectedApp.name} ({selectedApp.id})
+              </div>
+              <DynamicIframe
+                ref={iframeRef}
+                appId={selectedAppId}
+                onError={handleError}
+                onLoad={() => {
+                  console.log(`${selectedApp.name} loaded successfully`);
+                  // Show a toast message when the iframe loads
+                  setToastMessage(`${selectedApp.name} loaded successfully`);
+                  setShowToast(true);
+                }}
+              />
+            </>
           )}
         </div>
         

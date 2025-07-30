@@ -7,9 +7,7 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 vi.mock('../NotificationService', () => {
   return {
     default: {
-      scheduleNotification: vi.fn().mockResolvedValue(undefined),
-      scheduleNotificationAt: vi.fn().mockResolvedValue(undefined),
-      scheduleNotificationWithActions: vi.fn().mockResolvedValue(undefined),
+      sendNotification: vi.fn().mockResolvedValue(undefined),
     }
   };
 });
@@ -58,13 +56,13 @@ describe('notificationUtils', () => {
       const expectedTime = new Date(mockNow);
       expectedTime.setHours(hour, minute, 0, 0);
       
-      expect(notificationService.scheduleNotificationAt).toHaveBeenCalledTimes(1);
-      expect(notificationService.scheduleNotificationAt).toHaveBeenCalledWith(
-        'Test',
-        'Message',
-        expectedTime,
-        undefined
-      );
+      expect(notificationService.sendNotification).toHaveBeenCalledTimes(1);
+      expect(notificationService.sendNotification).toHaveBeenCalledWith({
+        title: 'Test',
+        body: 'Message',
+        scheduledDateTime: expectedTime,
+        id: undefined
+      });
     });
 
     it('should schedule a notification for tomorrow if the time has already passed today', async () => {
@@ -79,13 +77,13 @@ describe('notificationUtils', () => {
       expectedTime.setHours(hour, minute, 0, 0);
       expectedTime.setDate(expectedTime.getDate() + 1); // Add one day
       
-      expect(notificationService.scheduleNotificationAt).toHaveBeenCalledTimes(1);
-      expect(notificationService.scheduleNotificationAt).toHaveBeenCalledWith(
-        'Test',
-        'Message',
-        expectedTime,
-        undefined
-      );
+      expect(notificationService.sendNotification).toHaveBeenCalledTimes(1);
+      expect(notificationService.sendNotification).toHaveBeenCalledWith({
+        title: 'Test',
+        body: 'Message',
+        scheduledDateTime: expectedTime,
+        id: undefined
+      });
     });
   });
 
@@ -109,13 +107,13 @@ describe('notificationUtils', () => {
       expectedTime.setDate(expectedTime.getDate() + 3);
       expectedTime.setHours(hour, minute, 0, 0);
       
-      expect(notificationService.scheduleNotificationAt).toHaveBeenCalledTimes(1);
-      expect(notificationService.scheduleNotificationAt).toHaveBeenCalledWith(
-        'Test',
-        'Message',
-        expectedTime,
-        undefined
-      );
+      expect(notificationService.sendNotification).toHaveBeenCalledTimes(1);
+      expect(notificationService.sendNotification).toHaveBeenCalledWith({
+        title: 'Test',
+        body: 'Message',
+        scheduledDateTime: expectedTime,
+        id: undefined
+      });
     });
 
     it('should schedule for next week if the day is today or earlier in the week', async () => {
@@ -137,13 +135,13 @@ describe('notificationUtils', () => {
       expectedTime.setDate(expectedTime.getDate() + 4);
       expectedTime.setHours(hour, minute, 0, 0);
       
-      expect(notificationService.scheduleNotificationAt).toHaveBeenCalledTimes(1);
-      expect(notificationService.scheduleNotificationAt).toHaveBeenCalledWith(
-        'Test',
-        'Message',
-        expectedTime,
-        undefined
-      );
+      expect(notificationService.sendNotification).toHaveBeenCalledTimes(1);
+      expect(notificationService.sendNotification).toHaveBeenCalledWith({
+        title: 'Test',
+        body: 'Message',
+        scheduledDateTime: expectedTime,
+        id: undefined
+      });
     });
   });
 
@@ -158,37 +156,37 @@ describe('notificationUtils', () => {
       );
       
       // Should have called scheduleNotification 4 times (3 countdown + 1 final)
-      expect(notificationService.scheduleNotification).toHaveBeenCalledTimes(4);
+      expect(notificationService.sendNotification).toHaveBeenCalledTimes(4);
       
       // Check the countdown notifications
-      expect(notificationService.scheduleNotification).toHaveBeenCalledWith(
-        'Countdown - 3',
-        '3 minutes remaining',
-        1003,
-        60
-      );
+      expect(notificationService.sendNotification).toHaveBeenCalledWith({
+        title: 'Countdown - 3',
+        body: '3 minutes remaining',
+        id: 1003,
+        delayInSeconds: 60
+      });
       
-      expect(notificationService.scheduleNotification).toHaveBeenCalledWith(
-        'Countdown - 2',
-        '2 minutes remaining',
-        1002,
-        120
-      );
+      expect(notificationService.sendNotification).toHaveBeenCalledWith({
+        title: 'Countdown - 2',
+        body: '2 minutes remaining',
+        id: 1002,
+        delayInSeconds: 120
+      });
       
-      expect(notificationService.scheduleNotification).toHaveBeenCalledWith(
-        'Countdown - 1',
-        '1 minute remaining',
-        1001,
-        180
-      );
+      expect(notificationService.sendNotification).toHaveBeenCalledWith({
+        title: 'Countdown - 1',
+        body: '1 minute remaining',
+        id: 1001,
+        delayInSeconds: 180
+      });
       
       // Check the final notification
-      expect(notificationService.scheduleNotification).toHaveBeenCalledWith(
-        'Countdown',
-        'Final message',
-        1000,
-        240
-      );
+      expect(notificationService.sendNotification).toHaveBeenCalledWith({
+        title: 'Countdown',
+        body: 'Final message',
+        id: 1000,
+        delayInSeconds: 240
+      });
     });
   });
 
@@ -202,16 +200,17 @@ describe('notificationUtils', () => {
       );
       
       // Should have scheduled a notification with actions
-      expect(notificationService.scheduleNotificationWithActions).toHaveBeenCalledTimes(1);
-      expect(notificationService.scheduleNotificationWithActions).toHaveBeenCalledWith(
-        'Test',
-        'Message',
-        [
+      expect(notificationService.sendNotification).toHaveBeenCalledTimes(1);
+      expect(notificationService.sendNotification).toHaveBeenCalledWith({
+        title: 'Test',
+        body: 'Message',
+        actions: [
           { id: 'snooze', title: 'Snooze 10 min' },
           { id: 'dismiss', title: 'Dismiss' }
         ],
-        123
-      );
+        id: 123,
+        scheduledDateTime: expect.any(Date)
+      });
       
       // Should have set up a listener for the action
       expect(LocalNotifications.addListener).toHaveBeenCalledTimes(1);
